@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Examen de Licencia ANT</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        .initial-page, .exam-page, .summary-page {
+            display: none;
+        }
+        .question-card {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        .options label {
+            display: block;
+            margin: 8px 0;
+            padding: 10px;
+            background-color: #eee;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .options label:hover {
+            background-color: #e0e0e0;
+        }
+        input[type="radio"] {
+            margin-right: 10px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #start-button { background-color: #007bff; }
+        #start-button:hover { background-color: #0056b3; }
+        #finish-button { background-color: #dc3545; }
+        #finish-button:hover { background-color: #c82333; }
+        #retry-button { background-color: #28a745; }
+        #retry-button:hover { background-color: #1e7e34; }
+
+        /* Estilos del Resumen */
+        .summary-item.correct {
+            background-color: #e6ffe6; /* Verde claro */
+            border-left: 5px solid #28a745; /* Verde */
+        }
+        .summary-item.incorrect {
+            background-color: #ffe6e6; /* Rojo claro */
+            border-left: 5px solid #dc3545; /* Rojo */
+        }
+        .summary-item p {
+            margin: 5px 0;
+        }
+        .summary-item strong {
+            font-weight: bold;
+        }
+        .correct-answer {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .user-answer {
+            font-style: italic;
+        }
+        .sign-image img {
+            display: block;
+            margin: 15px auto;
+            max-width: 600px; /* Tamaño máximo para las señales */
+            height: auto;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Simulador de Examen de Licencia Tipo B/F</h1>
+        
+        <div id="initial-page" class="initial-page">
+            <h2>Bienvenido al Simulador de Examen</h2>
+            <p>Se te presentarán 20 preguntas aleatorias de un banco de preguntas.</p>
+            <button id="start-button" onclick="startTest()">Iniciar Prueba</button>
+        </div>
+
+        <div id="exam-page" class="exam-page">
+            <h2>Examen - 20 Preguntas</h2>
+            <div id="questions-container">
+                </div>
+            <button id="finish-button" onclick="finishTest()">Finalizar Examen</button>
+        </div>
+
+        <div id="summary-page" class="summary-page">
+            <h2>Resultados del Examen</h2>
+            <p>Puntaje: <span id="score-display">0</span>/20</p>
+            <div id="summary-container">
+                </div>
+            <button id="retry-button" onclick="reattemptTest()">Reintentar con nuevas preguntas</button>
+        </div>
+    </div>
+
+    <script>
+        // 1. BANCO DE PREGUNTAS (CON REFERENCIAS A IMÁGENES GENÉRICAS)
+        // **IMPORTANTE:** Para que las imágenes funcionen, debe guardar sus archivos con estos nombres en la misma carpeta.
+        const QUESTION_BANK = [
+            { id: 1, q: "El no acatar lo indicado en una señal de tránsito, ¿Es una infracción?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO" },
+            { id: 2, q: "En un semáforo con giro a la derecha o izquierda, si el conductor tiene el semáforo en verde, al igual que los peatones, ¿Quién tiene la preferencia?", options: ["Los peatones", "Los vehículos", "Ambos"], answer: "Los peatones", image: '<img src="pregunta2.png" alt="Semáforo con Giro" class="sign-image">' },
+            { id: 3, q: "Cuándo un cruce de vía está regulado por un agente de tránsito, ¿Las señales manuales de éste prevalecen sobre cualquier otra existente, incluso semáforos?", options: ["A veces", "Siempre", "Nunca"], answer: "Siempre" },
+            { id: 4, q: "¿Una línea continua pintada en la calzada de color blanco o amarillo restringe la circulación vehicular de tal manera que ningún vehículo podrá cruzar?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO", image: '<img src="pregunta4.png" alt="Línea Continua" class="sign-image">' },
+            { id: 5, q: "Una línea discontinua de color amarillo o blanco pintada en la calzada, ¿Qué indica?", options: ["Permite rebasar o adelantar sobre esta línea, siempre que exista seguridad para hacerlo", "El conductor no puede realizar maniobras de adelantamiento cuando la línea es discontinua", "Restringe la circulación vehicular de tal manera que ningún vehículo podrá cruzar esta línea"], answer: "Permite rebasar o adelantar sobre esta línea, siempre que exista seguridad para hacerlo", image: '<img src="pregunta5.png" alt="Línea Discontinua" class="sign-image">' },
+            { id: 6, q: "Cuando vea pintado en la calzada una línea mixta, con la línea continua a la izquierda del conductor, ¿Qué indica esta línea?", options: ["Puede realizar maniobras de adelantamiento cuando tiene la línea discontinua a la izquierda del conductor", "Puede realizar maniobras de adelantamiento cuando tiene la línea discontinua a la izquierda y derecha del conductor", "El conductor no puede realizar maniobras de adelantamiento cuando tiene la línea continua a su izquierda"], answer: "El conductor no puede realizar maniobras de adelantamiento cuando tiene la línea continua a su izquierda", image: '<img src="pregunta6.png" alt="Línea Mixta" class="sign-image">' },
+            { id: 7, q: "Cuando ve pintado de color blanco o amarillo en la calzada doble línea continua ¿Qué indica?", options: ["El conductor puede realizar maniobras de adelantamiento cuando tiene doble línea", "Le permite al conductor rebasar o adelantar, siempre que exista la seguridad de hacerlo", "Están totalmente prohibidas las maniobras para rebasar o adelantar por cualquiera de los carriles que se transite para evitar choques"], answer: "Están totalmente prohibidas las maniobras para rebasar o adelantar por cualquiera de los carriles que se transite para evitar choques", image: '<img src="pregunta7.png" alt="Doble Línea Continua" class="sign-image">' },
+            { id: 8, q: "De acuerdo a la imagen, ¿Qué debe hacer si comparte carril con un ciclista?", options: ["Da prioridad a ciclista en el carril compartido", "Reduce a velocidad y comparte la vía con el ciclista", "Ambas"], answer: "Ambas",  image: '<img src="pregunta8.png" alt="Carril Compartido" class="sign-image">' },
+            { id: 9, q: "¿Esta señal se utiliza para indicar?", options: ["Un solo carril", "Obligación de los conductores circular solo en la dirección indicada", "Doble vía"], answer: "Obligación de los conductores circular solo en la dirección indicada", image: '<img src="pregunta9.png" alt="UNA VÍA" class="sign-image">' },
+            { id: 10, q: "De acuerdo a la imagen esta señal indica, No exceder de 30 km/h", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO", image: '<img src="pregunta10.png" alt="Señal de Límite de Velocidad 30 kmh" class="sign-image">' },
+            { id: 11, q: "De acuerdo a la imagen, ¿esta señal indica prohibido el cambio de carril?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO", image: '<img src="pregunta11.png" alt="Señal de Prohibido Cambio de Carril" class="sign-image">' },
+            { id: 12, q: "¿Qué debe hacer cuando usted observa esta señal?", options: ["Pasar la línea de pare y no ceder el paso", "Detenerse antes de la línea de pare y ceder el paso a todo tránsito", "Reducir la velocidad y estar preparado para detenerse solamente si hay peligro de colisión con otro vehículo o peatón"], answer: "Detenerse antes de la línea de pare y ceder el paso a todo tránsito", image: '<img src="pregunta12.png" alt="Señal de PARE" class="sign-image">' },
+            { id: 13, q: "¿Qué significa está señal?", options: ["Viraje permitido en el sentido de la flecha", "Viraje prohibido al sentido de la flecha", "Viraje seguro"], answer: "Viraje prohibido al sentido de la flecha", image: '<img src="pregunta13.png" alt="Señal de Prohibido Virar a la Izquierda" class="sign-image">' },
+            { id: 14, q: "¿Qué significa está señal?", options: ["No girar en U", "No virar a la izquierda", "Tener cuidado con el tráfico que vira"], answer: "No girar en U", image: '<img src="pregunta14.png" alt="Señal de Prohibido Giro en U" class="sign-image">' },
+            { id: 15, q: "¿Qué significa está señal?", options: ["Estacionamiento permitido para camiones", "Tránsito pesado debe circular por la derecha", "Circulación solo transito pesado"], answer: "Tránsito pesado debe circular por la derecha", image: '<img src="pregunta15.png" alt="Señal de Prohibido Circular Vehículos Pesados" class="sign-image">' },
+            { id: 16, q: "¿Qué significa esta señal?", options: ["Prohibido circular vehículos pesados", "Tránsito pesado a la derecha", "Solo tránsito pesado"], answer: "Prohibido circular vehículos pesados", image: '<img src="pregunta16.png" alt="Señal de Prohibido Adelantar" class="sign-image">' },
+            { id: 17, q: "¿Qué significa esta señal?", options: ["Solo tránsito liviano", "Prohibido doble columna", "Prohibido adelantar o rebasar"], answer: "Prohibido adelantar o rebasar", image: '<img src="pregunta17.png" alt="Señal de Mantener Derecha" class="sign-image">' },
+            { id: 18, q: "¿Qué significa esta señal?", options: ["Vehículos livianos deben girar a la derecha", "Vehículos livianos deben mantener su derecha", "Permitido estacionarse vehículos livianos"], answer: "Vehículos livianos deben mantener su derecha", image: '<img src="pregunta18.png" alt="Señal de Comienzo de Doble Vía" class="sign-image">' },
+            { id: 19, q: "¿Qué significa esta señal?", options: ["Cambio de carril", "No entre", "Comienza doble vía, pueden venir vehículos en sentido contrario. Precaución"], answer: "Comienza doble vía, pueden venir vehículos en sentido contrario. Precaución", image: '<img src="pregunta19.png" alt="Señal de Prohibido Estacionar y Detenerse" class="sign-image">' },
+            { id: 20, q: "¿Qué significa esta señal?", options: ["Prohibido estacionarse o detenerse", "Prohibido estacionarse", "Permite detenerse por un minuto solamente"], answer: "Prohibido estacionarse o detenerse", image: '<img src="pregunta20.png" alt="Señal de NO ENTRE" class="sign-image">' },
+            { id: 21, q: "¿Qué significa esta señal?", options: ["Ingreso permitido", "No entre", "Ninguna de las anteriores"], answer: "No entre", image: '<img src="pregunta21.png" alt="Señal de Prohibido Virar en U o a la Izquierda" class="sign-image">' },
+            { id: 22, q: "¿Qué significa esta señal?", options: ["Prohibido virar en U o a la izquierda", "Prohibido virar en U o a la derecha", "Prohibido virar a la derecha o a la izquierda"], answer: "Prohibido virar en U o a la izquierda", image: '<img src="pregunta22.png" alt="Señal de Prohibido Cambio de Carril a la Izquierda" class="sign-image">' },
+            { id: 23, q: "¿Qué significa esta señal?", options: ["Prohibido virar en U o a la izquierda", "Prohibido tomar la vía sinuosa", "Prohibido cambio de carril a la izquierda"], answer: "Prohibido cambio de carril a la izquierda", image: '<img src="pregunta23.png" alt="Prohibido Estacionar" class="sign-image}">' },
+            { id: 24, q: "¿Cuáles son las consecuencias de incumplimiento de esta señal (prohibido estacionarse)?", options: [" Sanción con el 10% del salario básico unificado", "Pena privativa de libertad", "Retiro de la licencia de conducir."], answer: " Sanción con el 10% del salario básico unificado", image: '<img src="pregunta24.png" alt="Prohibido Estacionar Izquierda" class="sign-image">' },
+            { id: 25, q: "¿Qué significa esta señal?", options: ["Permitido estacionar a la izquierda hasta la próxima intersección", "Prohibido estacionar a la derecha hasta la próxima intersección", "Prohibido estacionar al lado izquierdo de la señal hasta la próxima intersección"], answer: "Prohibido estacionar al lado izquierdo de la señal hasta la próxima intersección", image: '<img src="pregunta25.png" alt="Límite de Velocidad Urbana" class="sign-image">' },
+            // Continúa la lista del QUESTION_BANK desde el ID 26:
+{ id: 26, q: "¿Qué significa esta señal?", options: ["Estacionar a la derecha hasta la próxima intersección", "Prohibido estacionar al lado derecho de la señal hasta la próxima intersección", "Prohibición de estacionar a la izquierda hasta la próxima intersección"], answer: "Prohibido estacionar al lado derecho de la señal hasta la próxima intersección", image: '<img src="pregunta26.png" alt="Señal de Prohibido Estacionar a la Derecha" class="sign-image">' },
+{ id: 27, q: "¿Qué significa esta señal?", options: ["Prohibido estacionar a los dos lados de la señal hasta la próxima intersección a izquierda y derecha", "Estacionar a la derecha hasta la próxima intersección", "Prohibición de estacionar a la izquierda"], answer: "Prohibido estacionar a los dos lados de la señal hasta la próxima intersección a izquierda y derecha", image: '<img src="pregunta27.png" alt="Señal de Prohibido Estacionar a ambos lados" class="sign-image">' },
+{ id: 28, q: "¿Qué significa esta señal?", options: ["Estacionamiento tarifado", "Prohibición de estacionar", "Estacionamiento permitido"], answer: "Estacionamiento permitido", image: '<img src="pregunta28.png" alt="Señal de Estacionamiento Permitido (P)" class="sign-image">' },
+{ id: 29, q: "¿Qué significa esta señal?", options: ["Estacionamiento tarifado durante los días y horarios señalados", "Estacionamiento tarifado a excepción de los días y horarios definidos", "Estacionamiento no tarifado"], answer: "Estacionamiento tarifado durante los días y horarios señalados", image: '<img src="pregunta29.png" alt="Señal de Estacionamiento Tarifado" class="sign-image">' },
+
+{ id: 30, q: "¿Qué significa esta señal?", options: ["Estacionamiento prohibido para personas con discapacidad", "Estacionamiento reservado solo para personas con discapacidad", "Estacionamiento reservado para vehículos grandes"], answer: "Estacionamiento reservado solo para personas con discapacidad", image: '<img src="pregunta30.png" alt="Señal de Estacionamiento para Discapacitados" class="sign-image">' },
+{ id: 31, q: "¿Qué significa esta señal?", options: ["Estacionamiento en paralelo reservado para vehículos grandes", "Estacionamiento en reservado solo para personas con discapacidad a los lados de la señal", "Estacionamiento en paralelo prohibido para personas con discapacidad"], answer: "Estacionamiento en reservado solo para personas con discapacidad a los lados de la señal", image: '<img src="pregunta31.png" alt="Señal de Estacionamiento para Discapacitados a los lados" class="sign-image">' },
+{ id: 32, q: "¿Qué debe hacer el conductor de un vehículo particular frente a esta señal?", options: ["Detener o estacionar el vehículo en esta zona", "Aumentar la velocidad o rebasar al bus", "Abstenerse de estacionar o detener el vehículo en esta zona"], answer: "Abstenerse de estacionar o detener el vehículo en esta zona", image: '<img src="pregunta32.png" alt="Señal de Parada de Bus/Prohibido Detenerse" class="sign-image">' },
+{ id: 33, q: "¿Qué significa esta señal?", options: ["Largo máximo de los vehículos que circulan por esa vía", "Ancho máximo de los vehículos que circulan por esa vía", "Ancho de la vía"], answer: "Largo máximo de los vehículos que circulan por esa vía", image: '<img src="pregunta33.png" alt="Señal de Ancho Máximo Vehicular" class="sign-image">' },
+{ id: 34, q: "¿Qué significa esta señal?", options: ["Circular utilizando luces de estacionamiento", "Circular con precaución sobre ese carril ya que es compartido con peatones y ciclistas", "Carril exclusivo para peatones y ciclistas"], answer: "Carril exclusivo para peatones y ciclistas", image: '<img src="pregunta34.png" alt="Señal de Carril Compartido (Vehículo, Peatones, Ciclistas)" class="sign-image">' },
+{ id: 35, q: "¿Qué significa esta señal?", options: ["Que el carril segregado exclusivo para ciclistas y peatones se termina", "Que el carril segregado exclusivo para ciclistas y peatones se termina e inicia en la siguiente intersección", "Ninguna de las anteriores"], answer: "Que el carril segregado exclusivo para ciclistas y peatones se termina", image: '<img src="pregunta35.png" alt="Señal de Fin de Carril Compartido" class="sign-image">' },
+
+{ id: 36, q: "¿Qué debe hacer al observar la siguiente señal regulatoria?", options: ["Ceder el paso solo a los peatones", "Ceder el paso a los conductores, peatones y ciclistas", "Ceder el paso solo a los conductores"], answer: "Ceder el paso a los conductores, peatones y ciclistas", image: '<img src="pregunta36.png" alt="Señal de Ceda el Paso" class="sign-image">' },
+{ id: 37, q: "¿Qué significa esta señal?", options: ["Más adelante vía lateral", "Más adelante cruce de vías", "Más adelante intersección en “Y”"], answer: "Más adelante intersección en “Y”", image: '<img src="pregunta37.png" alt="Señal de Más adelante cruce de vías" class="sign-image">' },
+{ id: 38, q: "¿Qué significa esta señal?", options: ["Más adelante vire en U", "Aproximación a redondel", "Más adelante zona de derrumbes"], answer: "Aproximación a redondel", image: '<img src="pregunta38.png" alt="Señal de Aproximación a Redondel" class="sign-image">' },
+{ id: 39, q: "¿Qué significa esta señal?", options: ["Más adelante circulación en doble vía (bidireccional)", "Más adelante circulación en una vía", "Más adelante vire a la derecha"], answer: "Más adelante circulación en doble vía (bidireccional)", image: '<img src="pregunta39.png" alt="Señal de Doble Vía" class="sign-image">' },
+{ id: 40, q: "¿Qué significa esta señal?", options: ["Más adelante curva abierta hacia el lado que indica la flecha", "Más adelante curva cerrada hacia la derecha", "Más adelante curva y contra curva"], answer: "Más adelante curva abierta hacia el lado que indica la flecha", image: '<img src="pregunta40.png" alt="Señal de Curva Abierta" class="sign-image">' },
+
+{ id: 41, q: "¿Qué significa esta señal?", options: ["Más adelante curva pronunciada a la derecha", "Más adelante curva abierta a la derecha", "Más adelante curva y contra curva cerrada a la derecha en la dirección señalada"], answer: "Más adelante curva y contra curva cerrada a la derecha en la dirección señalada", image: '<img src="pregunta41.png" alt="Señal de Curva y Contracurva Cerrada" class="sign-image">' },
+{ id: 42, q: "¿Qué significa esta señal?", options: ["Más adelante curva y contra curva abierta a la izquierda en la dirección señalada", "Más adelante curva pronunciada a la izquierda", "Más adelante curva abierta a la izquierda"], answer: "Más adelante curva y contra curva abierta a la izquierda en la dirección señalada", image: '<img src="pregunta42.png" alt="Señal de Curva y Contracurva Abierta a la Izquierda" class="sign-image">' },
+{ id: 43, q: "¿Qué significa esta señal?", options: ["Más adelante curva y contra curva cerradas a la izquierda", "Más adelante curva pronunciada a la izquierda", "Más adelante vía sinuosa a la izquierda"], answer: "Más adelante vía sinuosa a la izquierda", image: '<img src="pregunta43.png" alt="Señal de Vía Sinuosa a la Izquierda" class="sign-image">' },
+{ id: 44, q: "¿Qué significa esta señal?", options: ["Prohibido virar en \"U\" a la izquierda", "Más adelante curva en U a la izquierda", "Prohibido virar en \"U\" a la derecha"], answer: "Más adelante curva en U a la izquierda", image: '<img src="pregunta44.png" alt="Señal de Curva en U a la Izquierda" class="sign-image">' },
+{ id: 45, q: "¿Qué significa esta señal?", options: ["Más adelante bandas transversales de alerta o de retumbo", "Más adelante agua en la vía", "Más adelante hondonada"], answer: "Más adelante bandas transversales de alerta o de retumbo", image: '<img src="pregunta45.png" alt="Señal de Bandas de Retumbo" class="sign-image">' },
+
+{ id: 46, q: "¿Qué significa esta señal?", options: ["Más adelante calzada irregular", "Más adelante reductor de velocidad", "Más adelante hondonada"], answer: "Más adelante reductor de velocidad", image: '<img src="pregunta46.png" alt="Señal de Calzada Irregular" class="sign-image">' },
+{ id: 47, q: "¿Qué significa esta señal?", options: ["Más adelante pendiente peligrosa", "Más adelante angostamiento en la vía", "Más adelante puente angosto"], answer: "Más adelante angostamiento en la vía", image: '<img src="pregunta47.png" alt="Señal de Angostamiento de Vía" class="sign-image">' },
+{ id: 48, q: "¿Cómo debe actuar un conductor frente a la señal de curva cerrada?", options: ["Acelerar", "Disminuir la velocidad antes de ingresar a la curva", "Mantener la misma velocidad en la que se encuentra circulando"], answer: "Disminuir la velocidad antes de ingresar a la curva", image: '<img src="pregunta48.png" alt="Señal de Curva Cerrada" class="sign-image">' },
+{ id: 49, q: "¿Qué significa esta señal?", options: ["Aproximación a una curva abierta a la derecha", "Aproximación a una contra curva a la derecha", "Aproximación a una curva cerrada en la dirección señalada"], answer: "Aproximación a una curva cerrada en la dirección señalada", image: '<img src="pregunta49.png" alt="Señal de Curva Cerrada a la Derecha" class="sign-image">' },
+
+{ id: 50, q: "¿Qué significa esta señal?", options: ["Aproximación a un cruce de vías al virar a la izquierda", "Aproximación a una curva cerrada a la izquierda", "Aproximación a una vía lateral izquierda o derecha en curva"], answer: "Aproximación a una vía lateral izquierda o derecha en curva", image: '<img src="pregunta50.png" alt="Señal de Vía Lateral en Curva" class="sign-image">' },
+{ id: 51, q: "Esta señal se utiliza para indicar:", options: ["La ubicación y el lugar por el cual el flujo de tránsito debe continuar la calzada normal", "Que el desvío se ha terminado y que el flujo del tránsito regresa por el desvío a la ruta original", "Dirección y lugar por el cual el flujo de tránsito debe dejar la calzada normal y desviarse por otras calles"], answer: "Dirección y lugar por el cual el flujo de tránsito debe dejar la calzada normal y desviarse por otras calles", image: '<img src="pregunta51.png" alt="Señal de Fin de Desvío" class="sign-image">' },
+{ id: 52, q: "¿Qué indica esta señal de tránsito?", options: ["Señal con lugar de destino y mensaje de acciones en palabras", "Señal con código de ruta, lugar de destino y mensaje de salida con distancia en kilómetros", "Señal con lugar de destino y flecha de asignación de carril"], answer: "Señal con lugar de destino y flecha de asignación de carril", image: '<img src="pregunta52.png" alt="Señal de Destino con Distancia en Kilómetros" class="sign-image">' },
+{ id: 53, q: "¿Qué le indica la siguiente señal?", options: ["La velocidad máxima en una zona donde se encuentran centros educativos", "Zona Escolar", "Ninguna de las anteriores"], answer: "Zona Escolar", image: '<img src="pregunta53.png" alt="Señal de Límite de Velocidad Escolar" class="sign-image">' },
+{ id: 54, q: "¿Qué le indica la siguiente señal?", options: ["Reducir la velocidad y conducir con precaución", "La velocidad máxima de circulación en una zona escolar", "Ambas"], answer: "Ambas", image: '<img src="pregunta54.png" alt="Señal de Advertencia de Zona Escolar" class="sign-image">' },
+{ id: 55, q: "¿Qué le indica la siguiente señal?", options: ["El inicio del paradero de una zona escolar", "Parada de vehículos pesados", "Zona permitida para familiares de estudiantes"], answer: "El inicio del paradero de una zona escolar", image: '<img src="pregunta55.png" alt="Señal de Paradero Escolar" class="sign-image">' },
+
+{ id: 56, q: "La luz amarilla intermitente en un semáforo significa:", options: ["Parar siempre y cuando lo pueda hacer con seguridad", "Disminuir la velocidad y atravesar la intersección con mucha precaución", "Parar, ceda el paso a todo el tráfico que cruza antes de atravesar la intersección"], answer: "Disminuir la velocidad y atravesar la intersección con mucha precaución" },
+{ id: 57, q: "¿Las instrucciones del agente de tránsito prevalecen sobre las señales de tránsito aunque el semáforo se encuentre en luz roja?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO" },
+{ id: 58, q: "¿En cuál de las siguientes luces de semáforo debería siempre detener su vehículo?", options: ["Luces rojas y luces rojas intermitentes", "Luces rojas continuas, flechas rojas y luces amarillas intermitentes", "Luces rojas continuas, luces rojas intermitentes y luces amarillas"], answer: "Luces rojas y luces rojas intermitentes" },
+{ id: 59, q: "¿Qué significa esta señal?", options: ["Motocicletas deben girar a la derecha", "Permitido estacionarse motocicletas", "Motocicletas deben mantenerse en el carril derecho"], answer: "Motocicletas deben mantenerse en el carril derecho", image: '<img src="pregunta59.png" alt="Señal de Motocicletas deben mantenerse en el carril derecho" class="sign-image">' },
+{ id: 60, q: "¿Qué significa esta señal?", options: ["Prohibida la circulación de vehículos pesados", "Prohibido el ingreso o circulación de vehículos motorizados", "Prohibida la circulación de buses"], answer: "Prohibido el ingreso o circulación de vehículos motorizados", image: '<img src="pregunta60.png" alt="Señal de Prohibido Vehículos Motorizados" class="sign-image">' },
+
+{ id: 61, q: "¿Qué significa esta señal?", options: ["Más adelante redondel", "Más adelante intersección en “T”", "Más adelante cruce de tren"], answer: "Más adelante intersección en “T”", image: '<img src="pregunta61.png" alt="Señal de Cruce de Tren" class="sign-image">' },
+{ id: 62, q: "¿Qué significa esta señal?", options: ["Más adelante parterre termina", "Más adelante angostamiento de vía", "Más adelante parterre comienza"], answer: "Más adelante parterre termina", image: '<img src="pregunta62.png" alt="Señal de Parterre Comienza" class="sign-image">' },
+{ id: 63, q: "¿Qué significa esta señal?", options: ["Más adelante parterre termina", "Más adelante angostamiento de vía", "Más adelante parterre comienza"], answer: "Más adelante parterre comienza", image: '<img src="pregunta63.png" alt="Señal de Parterre Termina" class="sign-image">' },
+{ id: 64, q: "¿Qué significa esta señal?", options: ["Más adelante cruce de ganado", "Más adelante cruce de peatones", "Más adelante cruce de maquinaria agrícola"], answer: "Más adelante cruce de ganado", image: '<img src="pregunta64.png" alt="Señal de Cruce de Ganado" class="sign-image">' },
+{ id: 65, q: "¿Qué significa esta señal?", options: ["Túnel obstruido", "Trabajos en el túnel", "Aproximación a túnel"], answer: "Aproximación a túnel", image: '<img src="pregunta65.png" alt="Señal de Aproximación a Túnel" class="sign-image">' },
+
+{ id: 66, q: "¿Qué significa esta señal?", options: ["Más adelante vía sinuosa a la derecha", "Más adelante curva pronunciada a la derecha", "Más adelante curva y contra curva abiertas a la derecha"], answer: "Más adelante vía sinuosa a la derecha", image: '<img src="pregunta66.png" alt="Señal de Curva y Contracurva Abierta a la Derecha" class="sign-image">' },
+{ id: 67, q: "¿Qué significa esta señal?", options: ["Más adelante solo vehículos livianos", "Más adelante vía compartida con ciclistas", "Más adelante vía solo para ciclistas"], answer: "Más adelante vía compartida con ciclistas", image: '<img src="pregunta67.png" alt="Señal de Vía Compartida con Ciclistas" class="sign-image">' },
+{ id: 68, q: "¿Qué significa esta señal?", options: ["Más adelante vía cerrada", "Más adelante reductor de velocidad", "Más adelante depresión en la vía"], answer: "Más adelante depresión en la vía", image: '<img src="pregunta68.png" alt="Señal de Depresión en la Vía" class="sign-image">' },
+{ id: 69, q: "¿Qué significa esta señal?", options: ["Más adelante pendiente peligrosa", "Más adelante estrechamiento en la vía", "Más adelante puente angosto"], answer: "Más adelante puente angosto", image: '<img src="pregunta69.png" alt="Señal de Puente Angosto" class="sign-image">' },
+{ id: 70, q: "¿Qué significan la siguiente señal?", options: ["Velocidad mínima de Km/h", "Límite máximo de velocidad", "Usted se encuentra en el Kilómetro 30"], answer: "Límite máximo de velocidad", image: '<img src="pregunta70.png" alt="Señal de Límite Máximo de Velocidad" class="sign-image">' },
+
+{ id: 71, q: "La luz roja intermitente en un semáforo significa:", options: ["Parar siempre", "Disminuir la velocidad y atravesar la intersección con mucha precaución", "Parar, ceda el paso a todo el tráfico que cruza antes de atravesar la intersección"], answer: "Parar siempre" },
+{ id: 72, q: "La luz roja intermitente en una señal de PARE en el extremo lateral izquierdo de un transporte escolar, ¿Qué significa?", options: ["Prohibido adelantar o rebasar al transporte escolar, hasta que se apague la luz intermitente y se guarde la señal de PARE", "Disminuir la velocidad y adelantar con precaución al transporte escolar", "Que se encendió las luces de estacionamiento del transporte escolar"], answer: "Prohibido adelantar o rebasar al transporte escolar, hasta que se apague la luz intermitente y se guarde la señal de PARE" },
+{ id: 73, q: "La licencia digital es válida para circular en el Ecuador:", options: ["Si", "Solo si está impresa", "Ninguna de las anteriores"], answer: "Si" },
+{ id: 74, q: "Es válido portar una copia simple de la licencia o matrícula para circular en el Ecuador:", options: ["No, nunca", "Solo si está impresa", "Ninguna de las anteriores"], answer: "No, nunca" },
+{ id: 75, q: "Debo hacer un curso de conducción para obtener mi licencia de conductor en el Ecuador:", options: ["No", "Solo si me pide el agente de tránsito", "Sí, siempre"], answer: "Sí, siempre" },
+
+{ id: 76, q: "El no cancelar el valor de multas no le permitirá: renovar la licencia, realizar la revisión técnica vehicular y matricular su vehículo", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO" },
+{ id: 77, q: "¿El conductor que NO haya sido sancionado durante el tiempo de vigencia de la licencia de conducir y mantenga los 30 (puntos), se beneficiará del 30% en el pago del valor de la especie de la licencia de conducir?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "FALSO" },
+{ id: 78, q: "Si conduce su vehículo con un nivel de alcohol por litro de sangre de 0, a 0,80; ¿Qué sanción será aplicada?", options: ["Treinta días de privación de libertad y retención del vehículo por veinticuatro horas", "Cinco días de privación de libertad y retención del vehículo por veinticuatro horas", "Ninguna de las anteriores"], answer: "Cinco días de privación de libertad y retención del vehículo por veinticuatro horas" },
+{ id: 79, q: "El conductor que falte de obra a la autoridad o agente de tránsito, ¿Será sancionado con pena privativa de libertad de tres días?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO" },
+{ id: 80, q: "Si se queda sin combustible y por esa razón obstaculiza el tránsito vehicular, ¿Está cometiendo una contravención?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO" },
+
+{ id: 81, q: "¿Es una contravención de tránsito, la o el conductor que conduzca con licencia caducada?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO" },
+{ id: 82, q: "La o el conductor y pasajeros que no hagan uso del cinturón de seguridad, ¿Corresponde a una contravención de transito?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO" },
+{ id: 83, q: "La o el conductor que invada con su vehículo circulando o estacionándose, en las vías asignadas para uso exclusivo de los ciclistas, ¿Corresponde a una contravención de tránsito?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO" },
+{ id: 84, q: "Los conductores que conduzcan en estado de embriaguez o bajo los efectos de sustancias estupefacientes, psicotrópicas o preparados que las contengan y del cual provoquen un siniestro del cual resulte la muerte, ¿Qué sanción corresponde?", options: ["Pena privativa de la libertad de doce a veinte años", "Revocatoria definitiva de la licencia para conducir", "Ninguna de las anteriores"], answer: "Revocatoria definitiva de la licencia para conducir" },
+{ id: 85, q: "El conducir un vehículo cuyas llantas se encuentren lisas o en mal estado, ¿Será sancionado con pena privativa de libertad de cinco a quince días?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO" },
+
+{ id: 86, q: "El conducir un vehículo con las luces no encendidas en horas de la noche o conduzca en sitios oscuros como túneles con la luces apagadas, ¿Corresponde a una contravención de tránsito?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO" },
+{ id: 87, q: "¿Cuál de los siguientes enunciados corresponde a una contravención de tránsito?", options: ["La o el conductor que conduce sin mantener una distancia prudente de seguimiento respecto al vehículo y ciclista de adelante", "La o el conductor que conduce con una distancia prudente de seguimiento respecto al vehículo de adelante", "La o el conductor que cede el paso y permite el adelantamiento de otros vehículos."], answer: "La o el conductor que conduce sin mantener una distancia prudente de seguimiento respecto al vehículo y ciclista de adelante" },
+{ id: 88, q: "La o el conductor de un vehículo automotor que circule con personas en los estribos o pisaderas, baldes de camionetas, parachoques o colgados de las carrocerías de los vehículos, ¿Es una contravención de transito?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO" },
+{ id: 89, q: "La o el conductor de un vehículo particular que tenga vidrios con películas antisolares oscuras, polarizados o cualquier tipo de adhesivo y que no tenga la debida autorización, ¿Corresponde a una contravención de tránsito?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO" },
+{ id: 90, q: "¿Qué indican las líneas blancas que se observan en la imagen?", options: ["Estacionamiento en paralelo", "Líneas de borde", "Línea de prohibición de estacionamiento"], answer: "Líneas de borde", image: '<img src="pregunta90.png" alt="Líneas Blancas Horizontales" class="sign-image">' },
+
+{ id: 91, q: "¿Qué indican las líneas amarillas al borde de la calzada que se observan en la imagen?", options: ["Indican a los conductores que es permitido el parqueo vehículos", "Indican a los conductores que se permite el adelantamiento de vehículo", "Indican a los conductores, especialmente en caso de poca visibilidad, dónde se encuentra el borde de la calzada"], answer: "Indican a los conductores, especialmente en caso de poca visibilidad, dónde se encuentra el borde de la calzada", image: '<img src="pregunta91.png" alt="Líneas Amarillas al Borde de la Calzada" class="sign-image">' },
+{ id: 92, q: "¿Qué significan las líneas segmentadas pintadas de blanco en una intersección, que se observan en la imagen?", options: ["Cruce de ciclovías", "Cruce peatonal", "Cruce de mascotas"], answer: "Cruce de ciclovías", image: '<img src="pregunta92.png" alt="Líneas Segmentadas Blancas en Intersección (Cruce Peatonal)" class="sign-image">' },
+{ id: 93, q: "De acuerdo a la imagen, ¿Las señales reglamentarias indican la dirección obligatoria en el carril que deben seguir los vehículos en la próxima intersección?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO", image: '<img src="pregunta93.png" alt="Flechas de Dirección Obligatoria en Carril" class="sign-image">' },
+{ id: 94, q: "¿Qué debe hacer el conductor cuando en la vía observe un cruce peatonal demarcado tipo cebra como indica la imagen?", options: ["Debe pitar para alertar al peatón que no baje de la vereda", "Debe ceder el paso a los peatones que se encuentran cruzando la vía", "Debe acelerar para pasar más rápido"], answer: "Debe ceder el paso a los peatones que se encuentran cruzando la vía", image: '<img src="pregunta94.png" alt="Cruce Peatonal Tipo Cebra" class="sign-image">' },
+{ id: 95, q: "¿Qué debe hacer el conductor cuando se encuentre con una señal horizontal pintada en la vía como se observa en la imagen?", options: ["Velocidad mínima de 40 km/h", "Velocidad máxima de 40 km/h", "Peso permitido de 40"], answer: "Velocidad máxima de 40 km/h", image: '<img src="pregunta95.png" alt="Señal Horizontal de 40 km/h" class="sign-image">' },
+
+{ id: 96, q: "De acuerdo a la imagen, ¿Qué significa la siguiente señal horizontal pintada en la vía?", options: ["Estacionar temporalmente cuando no exista un agente de tránsito", "Prohibido estacionar", "Estacionamiento exclusivo para personas con discapacidad"], answer: "Prohibido estacionar", image: '<img src="pregunta96.png" alt="Señal Horizontal de Prohibido Estacionar" class="sign-image">' },
+{ id: 97, q: "¿Qué significa esta señalización horizontal?", options: ["Estacionamiento tarifado", "No estacionar", "Estacionamiento gratuito"], answer: "Estacionamiento tarifado", image: '<img src="pregunta97.png" alt="Señalización de Estacionamiento Tarifado" class="sign-image">' },
+{ id: 98, q: "El conductor cuando se encuentre en una intersección, ¿Debe detener su vehículo, bicicleta y peatones completamente y dar el paso a cualquier vehículo que se encuentre cruzando la intersección?", options: ["VERDADERO", "FALSO", "DESCONOCE"], answer: "VERDADERO" },
+{ id: 99, q: "Los vehículos A y B llegan al mismo tiempo a una intersección en cruz por diferentes lados ¿Cuál tiene derecho de vía?", options: ["Cualquiera de los dos", "El vehículo que se aproxima a la izquierda", "El vehículo que se aproxima a la derecha"], answer: "El vehículo que se aproxima a la derecha" },
+{ id: 100, q: "¿Qué significa esta señal?", options: ["Saludo", "Giro a izquierda", "Disminuir la velocidad"], answer: "Giro a izquierda", image: '<img src="pregunta100.png" alt="Señal de Agente de Tránsito: Giro a la Izquierda" class="sign-image">' },
+{ id: 101, q: "¿Qué significa esta señal?", options: ["Saludo", "Parar", "Giro a la derecha"], answer: "Giro a la derecha", image: '<img src="pregunta101.png" alt="Señal de Agente de Tránsito: Detenerse" class="sign-image">' },
+// Preguntas 101 a 139
+{ id: 102, q: "¿Qué significa esta señal?", options: ["Solicita ayuda", "Estacionarse o detenerse", "Giro a izquierda"], answer: "Estacionarse o detenerse", image: '<img src="pregunta102.png" alt="Señal de Agente de Tránsito: Giro a Izquierda" class="sign-image">' },
+{ id: 103, q: "¿Qué significa el espacio de la berma?", options: ["Estacionamiento", "Espacio exclusivo para circulación de peatones, ciclistas y movilidad personal", "Carril para circulación de motos"], answer: "Espacio exclusivo para circulación de peatones, ciclistas y movilidad personal" },
+{ id: 104, q: "¿Qué es la movilidad activa?", options: ["Es aquella que depende del movimiento motorizado, incluye el transporte público", "Es aquella que depende del movimiento físico de las personas, incluye la caminata el uso de la bicicleta y movilidad personal", "Ninguna de las anteriores"], answer: "Es aquella que depende del movimiento físico de las personas, incluye la caminata el uso de la bicicleta y movilidad personal" },
+{ id: 105, q: "¿Cuáles son derechos de los biciusuarios?", options: ["Derecho preferente de vía o circulación en los desvíos de avenidas y carreteras, cruce de caminos intersecciones no señalizadas y ciclovías", "Disponer vías de circulación privilegiada dentro de las ciudades y en carreteras, como ciclovías y espacios similares", "Todas las anteriores"], answer: "Todas las anteriores" },
+
+{ id: 106, q: "De acuerdo a la normativa, ¿Dónde tienen derecho a circular los ciclistas?", options: ["Únicamente en las sendas especiales destinadas al uso de bicicletas", "En las aceras, con cuidado respectivo a los peatones", "Transitar por todas las vías del país con respeto y seguridad."], answer: "Transitar por todas las vías del país con respeto y seguridad." },
+{ id: 107, q: "¿En qué momento los conductores son responsables de su seguridad, de los pasajeros y el resto de usuarios viales?", options: ["Los conductores no son responsables de lo que el pasajero haga o deje de hacer en cuanto a su seguridad", "En todo momento", "Solo cuando esté encendido el motor del vehículo"], answer: "En todo momento" },
+{ id: 108, q: "¿Qué se entiende por vía pública?", options: ["El lugar por donde circulan los vehículos", "Espacio público destinado al libre tránsito vehicular, bicicletas y peatonal", "El lugar por donde circulan los peatones"], answer: "Espacio público destinado al libre tránsito vehicular, bicicletas y peatonal" },
+{ id: 109, q: "¿Cuáles son las obligaciones de los peatones en la vía pública?", options: ["Solicitar transporte o pedir ayuda a los automovilistas en lugares apropiados o prohibidos", "Cruzar por las esquinas o cruces peatonales en las vías primarías y vías secundarias con más de dos carriles efectivos de circulación; en vías secundarias que cuenten con un máximo de dos carriles efectivos de circulación podrán cruzar en cualquier punto; y siempre y cuando le sea posible hacerlo de manera segura", "Cruzar la calle por la parte anterior y posterior de los automotores que se hayan detenido momentáneamente"], answer: "Cruzar por las esquinas o cruces peatonales en las vías primarías y vías secundarias con más de dos carriles efectivos de circulación; en vías secundarias que cuenten con un máximo de dos carriles efectivos de circulación podrán cruzar en cualquier punto; y siempre y cuando le sea posible hacerlo de manera segura" },
+
+{ id: 110, q: "¿Cuáles son derechos de los peatones?", options: ["Tener libre circulación sobre las aceras y zonas peatonales exclusivas, tener preferencia de vía sobre todas las intersecciones, inclusive en las que tienen semáforo cuando la luz verde peatonal esté encendida, todo el tiempo en los pasos cebra y en las esquinas no reguladas por semáforos, procurando su propia seguridad y la de los demás", "Disponer de las vías públicas libres de obstáculos y no invadidas, y contar con infraestructura y señalización vial adecuadas que les brinden seguridad, en especial para las personas pertenecientes a los grupos de atención prioritaria", "Todas las anteriores"], answer: "Todas las anteriores" },
+{ id: 111, q: "Uno de los objetivos de la Ley de Transporte Terrestre Tránsito y Seguridad Vial, es:", options: ["Definir sus principios, garantizar el derecho a la educación superior de calidad que propenda a la excelencia", "Contribuir al desarrollo del País a través de la formulación de políticas, regulaciones, planes, programas y proyectos, que garanticen el buen vivir", "El establecimiento de programas de capacitación y difusión para conductores, peatones, pasajeros y autoridades, en materia de seguridad vial, para la creación de una cultura y conciencia vial responsable y solidaria"], answer: "El establecimiento de programas de capacitación y difusión para conductores, peatones, pasajeros y autoridades, en materia de seguridad vial, para la creación de una cultura y conciencia vial responsable y solidaria" },
+{ id: 112, q: "¿Cómo se sanciona a los responsables de un siniestro de tránsito que no sean conductores (pasajeros, controladores, peatones, etc.)?", options: ["Con las mismas penas que a un conductor responsable del siniestro", "Con las mismas sanciones que un conductor, exceptuando la pérdida de puntos", "Con la mitad de las penas establecidas para un conductor responsable de un siniestro"], answer: "Con las mismas sanciones que un conductor, exceptuando la pérdida de puntos" },
+{ id: 113, q: "¿Qué implica conducir con prudencia a pesar de las acciones incorrectas de otros conductores y de las condiciones adversas del clima y las vías, practicando normas de seguridad para no provocar un siniestro de tránsito?", options: ["Conducción con precaución", "Conducir con rapidez", "Cumplir con las normas de tránsito"], answer: "Conducción con precaución" },
+{ id: 114, q: "¿Qué implica la prevención de siniestros?", options: ["Evitar las conductas riesgosas : exceso de velocidad, consumo de alcohol, no uso de cinturón, casco o sistemas de retención infantil, no respetar las señales de tránsito, manejo distraído", "Desarrollar un sistema seguro de movilidad, lo cual implica infraestructura para la seguridad vial, control y capacitación de los actores viales", "Todas las anteriores"], answer: "Todas las anteriores" },
+{ id: 115, q: "¿Cuáles son los objetivos de la educación vial?", options: ["Reducir de forma sistemática los siniestros de tránsito", "Formar y capacitar a las personas en general para el uso correcto de todos los medios de transporte terrestre", "Todas las anteriores"], answer: "Todas las anteriores" },
+
+{ id: 116, q: "Los niños menores de 12 años podrán viajar en:", options: ["En el asiento delantero con cinturón de seguridad", "En el asiento delantero sin cinturón de seguridad", "En los asientos posteriores utilizando los sistemas de retención infantil de acuerdo a la edad y altura"], answer: "En los asientos posteriores utilizando los sistemas de retención infantil de acuerdo a la edad y altura" },
+{ id: 117, q: "¿Para qué sirven los seguros a prueba de niños en los vehículos?", options: ["Aseguran las hebillas de los cinturones de seguridad", "Bloquean las ventanas traseras manteniéndolas cerradas", "Impiden que las puertas puedan abrirse desde el interior"], answer: "Impiden que las puertas puedan abrirse desde el interior" },
+{ id: 118, q: "El dispositivo de seguridad pasiva que reduce el desplazamiento de la cabeza hacia atrás para evitar el efecto latigazo cervical, se conoce como:", options: ["Apoya cabeza", "Cinturón de seguridad", "Airbag"], answer: "Apoya cabeza" },
+{ id: 119, q: "¿Cómo se conoce al dispositivo de seguridad pasiva incluida en algunos vehículos el cual se acciona en milisegundos al producirse un impacto?", options: ["Apoya cabeza", "Cinturón de seguridad", "Airbag o bolsa de aire"], answer: "Airbag o bolsa de aire" },
+{ id: 120, q: "¿Cuál es la distancia mínima que debe mantener entre vehículo y ciclista al conducir?", options: ["1,0 metros", "1,5 metros", "Todas las anteriores"], answer: "1,5 metros" },
+
+{ id: 121, q: "¿Cuándo debo llevar el kit de emergencia o carretero en mi vehículo?", options: ["Solo Triángulos", "Siempre", "Solo en caso de emergencia"], answer: "Siempre" },
+{ id: 122, q: "En un paso cebra no regulado, ¿Quién tiene la preferencia de paso?", options: ["Los vehículos en circulación", "Los Peatones", "El transporte público"], answer: "Los Peatones" },
+{ id: 123, q: "En caso de avería mecánica en la vía, ¿Debo poner los triángulos o conos de seguridad?", options: ["No es necesario", "Sí, siempre", "Solo en caso de haber agentes de tránsito"], answer: "Sí, siempre" },
+{ id: 124, q: "¿A qué distancia mínima antes de una maniobra es obligatorio poner la respectiva luz intermitente?", options: ["Cuando ejecuto la maniobra", "Mínimo 30 metros antes", "Mínimo 10 metros antes"], answer: "Mínimo 30 metros antes" },
+{ id: 125, q: "En un siniestro de tránsito las autoridades encargadas del control del tránsito, ¿Pueden detener a las personas involucradas?", options: ["No pueden detener a nadie hasta que tengan una orden judicial", "Pueden detenerlos y ponerlos a las órdenes del fiscal, en el caso donde resultaron personas lesionadas o fallecidas", "Solamente pueden detener a los vehículos"], answer: "Pueden detenerlos y ponerlos a las órdenes del fiscal, en el caso donde resultaron personas lesionadas o fallecidas" },
+
+{ id: 126, q: "Al momento de rebasar a un ciclista en circulación, ¿Qué distancia mínima debe tomar el vehículo?", options: ["1 metro", "1,5 metros", "50 centímetros"], answer: "1,5 metros" },
+{ id: 127, q: "¿Cuál es la distancia mínima de seguimiento que debe mantener entre vehículo y ciclista al conducir?", options: ["1 metro", "3 metros", "2 metros"], answer: "3 metros" },
+{ id: 128, q: "¿Qué debe realizar un conductor cuando ve que un bus escolar e institucional se detiene en una parada?", options: ["Acelerar la marcha para pasar al bus", "Esperar y dar el paso a todos los peatones que se bajan del bus", "Ninguna de las anteriores"], answer: "Esperar y dar el paso a todos los peatones que se bajan del bus" },
+{ id: 129, q: "En las carreteras, ¿Los conductores cuando circulan deben dar preferencia?", options: ["Otros conductores", "Peatones, ciclistas, motociclistas y similares.", "Ninguna de las anteriores"], answer: "Peatones, ciclistas, motociclistas y similares." },
+{ id: 130, q: "¿Qué se presume si un conductor se niega a realizarse pruebas para la detección de alcohol o de la presencia de sustancias estupefacientes?", options: ["No", "Será considerada como presunción de estar en el máximo grado de intoxicación", "Solo en el día"], answer: "Será considerada como presunción de estar en el máximo grado de intoxicación" },
+
+{ id: 131, q: "Cuando se conduzca un vehículo a motor y se requiera cruzar una acera para entrar o salir de un estacionamiento, ¿quién tiene preferencia de paso?", options: ["El conductor que está saliendo.", "Solo los vehículos", "Peatones, ciclistas y vehículos"], answer: "Peatones, ciclistas y vehículos" },
+{ id: 132, q: "¿A qué velocidad se estima que un atropellamiento de un niño/a sería mortal?", options: ["10km/h", "15km/h", "25km/h"], answer: "25km/h" },
+{ id: 133, q: "¿A qué velocidad se estima que el atropellamiento a un adulto sería mortal?", options: ["20km/h", "40km/h", "60km/h"], answer: "60km/h" },
+{ id: 134, q: "En caso de que no exista señalización horizontal y/o vertical, ¿Quién tendría derecho de paso en la vía en caso de que los usuarios presentes incluyan peatones, ciclistas, vehículos livianos, carga pesada?", options: ["Peatones", "Biciusuarios", "Transporte público de pasajeros"], answer: "Peatones" },
+{ id: 135, q: "Si un peatón va a cruzar una intersección con luz verde del semáforo vehicular o una intersección no regulada y un vehículo va girar, ¿Quién tiene la preferencia de paso?", options: ["El auto", "El peatón", "Los dos"], answer: "El peatón" },
+
+{ id: 136, q: "¿Qué son las zonas 30?", options: ["Zona en donde la velocidad máxima es 30 km/h", "Es una zona peatonal", "Zona en donde la velocidad mínima es 30km/h"], answer: "Zona en donde la velocidad máxima es 30 km/h" },
+{ id: 137, q: "¿Por qué la movilidad activa es importante?", options: ["Está de moda", "Genera menor impacto ambiental, social y económico", "Ninguna de las anteriores"], answer: "Genera menor impacto ambiental, social y económico" },
+{ id: 138, q: "¿Un pasajero de transporte público puede denunciar ante la autoridad de tránsito, cuando el conductor esté en estado de ebriedad?", options: ["Es su obligación", "Tal vez", "No"], answer: "Es su obligación" },
+{ id: 139, q: "¿En qué porcentaje disminuyen las probabilidades de muerte para un motociclista o ciclista durante un siniestro si utiliza casco homologado?", options: ["No disminuyen, aumentan", "1%", "39%"], answer: "39%" },
+{ id: 140, q: "El conductor con licencia tipo B, ¿puede llevar pasajeros en el balde de una camioneta?", options: ["Si", "No, Nunca", "Sí, sólo si están dentro del área urbana"], answer: "No, Nunca"},
+{ id: 141, q: "¿A quién se otorga la licencia tipo F?", options: ["A las personas mayores de edad que conducen vehículos comerciales", "A las personas de 16 años que no cumplen la mayoría de edad", " A las personas que tienen un carnet de discapacidad con más del 30% "], answer: " A las personas que tienen un carnet de discapacidad con más del 30% "},
+{ id: 142, q: "¿Cuál es la manera más segura para llevar a un niño en el vehículo?", options: ["En la falda de un adulto que va con su cinturón de seguridad", "En cualquier asiento, siempre que lleve puesto el cinturón de seguridad para adultos", "En el asiento trasero, en un sistema de seguridad"], answer: "En el asiento trasero, en un sistema de seguridad"},
+{ id: 143, q: "En una vía urbana, ¿cuál es el límite máximo de velocidad en el que debe circular un vehículo considerado liviano?", options: [" 40 Km/h", "50 Km/h", "60 Km/h"], answer: "50 Km/h"},
+{ id: 144, q: "¿Cuál es la razón principal por la que la distancia mínima entre el conductor y el volante debe ser de 25 cm?", options: [" Porque al sentarse a mayor distancia no tendría suficiente visibilidad", "Porque es la distancia de acción del airbag al explotar", "Ninguna de las anteriores"], answer: "Porque es la distancia de acción del airbag al explotar"},
+{ id: 145, q: "En una vía perimetral, ¿cuál es el límite máximo de velocidad en el que debe circular un vehículo considerado liviano?", options: ["80 Km/h", "90 Km/h", "95 Km/h"], answer: "90 Km/h"},
+{ id: 146, q: "¿Para quién es obligatorio el uso del cinturón de seguridad?", options: ["Solamente para el conductor", "Solamente para los pasajeros", "Para todos los ocupantes del vehículo"], answer: "Para todos los ocupantes del vehículo"},
+{ id: 147, q: "En vías rectas, ¿cuál es el límite máximo de velocidad en el que debe circular un vehículo considerado liviano?", options: ["80 Km/h", "90 Km/h", "100 Km/h"], answer: "90 Km/h"},
+{ id: 148, q: "El freno de mano actúa sobre las ruedas:", options: ["Delanteras", "Posteriores", "Todas las anteriores"], answer: "Posteriores"},
+{ id: 149, q: "¿Qué tiempo de vigencia tienen las licencias no profesional tipo B? ", options: ["4 años", "6 años", "5 años"], answer: "5 años"},
+{ id: 150, q: "¿Cuándo una Licencia de conducir puede ser anulada?", options: [" Cuando los exámenes correspondientes determinen la incapacidad física mental y psicológica de su titular.", "Cuando este caducada", "Cuando se detecte que éstas han sido otorgadas mediante un acto viciado por defectos de forma o falta de requisitos de fondo."], answer: "Cuando se detecte que éstas han sido otorgadas mediante un acto viciado por defectos de forma o falta de requisitos de fondo."},
+{ id: 151, q: "¿Qué tipo de vehículos puede conducir una persona que posee licencia tipo B?", options: ["Automóviles y camionetas con acoplados de hasta 1,55 toneladas de carga útil o casas rodantes", "Automóviles y camionetas con acoplados de hasta 1,65 toneladas de carga útil o casas rodantes", "Automóviles y camionetas con acoplados de hasta 1,75 toneladas de carga útil o casas rodantes"], answer: "Automóviles y camionetas con acoplados de hasta 1,75 toneladas de carga útil o casas rodantes"},
+{ id: 152, q: "El ajuste del asiento del conductor debe:", options: [". Facilitar el acceso a los mandos y disponer de buena visibilidad", "Ser lo más alto posible para ver mejor hacia delante", "Estar lo más adelante posible para poder acelerar mejor"], answer: ". Facilitar el acceso a los mandos y disponer de buena visibilidad"},
+{ id: 153, q: "¿Cuál es la distancia mínima de seguimiento que debe mantener entre vehículo y ciclista al conducir?", options: ["1 metro", "3 metros", "2 metros"], answer: "3 metros"},
+{ id: 154, q: "Al momento de rebasar a un ciclista en circulación ¿Qué distancia mínima debe tomar el vehículo?", options: ["1 metro", "1,5 metros", "50 centimetros"], answer: "1,5 metros"},
+{ id: 155, q: "¿A qué velocidad se estima que un atropellamiento de un niño/a sería mortal? ", options: ["10 km/h", "15 km/h", "25 km/h"], answer: "25 km/h"},
+{ id: 156, q: "En un paso cebra no regulado, ¿Quién tiene la preferencia de paso?", options: [". Los vehículos en circulación", "Los Peatones", "El transporte público"], answer: "Los Peatones"},
+        ];
+
+        const EXAM_SIZE = 20; // Tamaño del examen
+        let availableQuestions = [...QUESTION_BANK]; 
+        let usedQuestions = []; 
+
+        // Funciones para manejar la visualización de páginas
+        function showPage(id) {
+            document.querySelectorAll('.initial-page, .exam-page, .summary-page').forEach(page => {
+                page.style.display = 'none';
+            });
+            document.getElementById(id).style.display = 'block';
+        }
+
+        // 2. FUNCIÓN DE INICIO DE EXAMEN
+        function startTest() {
+            // Reinicia el banco si no quedan suficientes preguntas para un examen completo
+            if (availableQuestions.length < EXAM_SIZE) {
+                availableQuestions = [...QUESTION_BANK];
+                usedQuestions = [];
+            }
+
+            const selectedQuestions = [];
+            let currentAvailable = [...availableQuestions];
+
+            // Selecciona 20 preguntas aleatorias sin repetición
+            for (let i = 0; i < EXAM_SIZE; i++) {
+                if (currentAvailable.length === 0) break;
+
+                const randomIndex = Math.floor(Math.random() * currentAvailable.length);
+                const question = currentAvailable.splice(randomIndex, 1)[0];
+                selectedQuestions.push(question);
+
+                // Mueve la pregunta seleccionada al banco de usadas (para que no se repita en este ciclo)
+                const indexInAvailable = availableQuestions.findIndex(q => q.id === question.id);
+                if (indexInAvailable > -1) {
+                    availableQuestions.splice(indexInAvailable, 1);
+                    usedQuestions.push(question);
+                }
+            }
+
+            localStorage.setItem('currentExam', JSON.stringify(selectedQuestions));
+            
+            renderQuestions(selectedQuestions);
+            showPage('exam-page');
+        }
+
+        // 3. RENDERIZADO DE PREGUNTAS (INCLUYE IMAGEN)
+        function renderQuestions(questions) {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = '';
+            
+            questions.forEach((q, index) => {
+                const questionCard = document.createElement('div');
+                questionCard.className = 'question-card';
+                
+                let html = `
+                    <p><strong>${index + 1}. ${q.q}</strong></p>
+                `;
+                
+                // Agrega la imagen si existe
+                if (q.image) {
+                     html += `<div class="sign-image">${q.image}</div>`;
+                }
+
+                html += `<div class="options">`;
+                
+                // Muestra las opciones
+                q.options.forEach((option, optIndex) => {
+                    const optionId = `q${q.id}_opt${optIndex}`;
+                    html += `
+                        <label for="${optionId}">
+                            <input type="radio" id="${optionId}" name="question_${q.id}" value="${option}">
+                            ${String.fromCharCode(97 + optIndex)}. ${option}
+                        </label>
+                    `;
+                });
+                
+                html += `</div>`;
+                questionCard.innerHTML = html;
+                container.appendChild(questionCard);
+            });
+        }
+
+        // 4. FUNCIÓN PARA FINALIZAR EL EXAMEN
+        function finishTest() {
+            const currentExam = JSON.parse(localStorage.getItem('currentExam'));
+            if (!currentExam) return;
+
+            let score = 0;
+            const results = [];
+            
+            currentExam.forEach(q => {
+                const selectedOption = document.querySelector(`input[name="question_${q.id}"]:checked`);
+                const userAnswer = selectedOption ? selectedOption.value : 'Sin respuesta';
+                const isCorrect = userAnswer === q.answer;
+
+                if (isCorrect) {
+                    score++;
+                }
+
+                results.push({
+                    question: q.q,
+                    correctAnswer: q.answer,
+                    userAnswer: userAnswer,
+                    isCorrect: isCorrect
+                });
+            });
+
+            renderSummary(score, results);
+            showPage('summary-page');
+        }
+
+        // 5. RENDERIZADO DEL RESUMEN (con verde/rojo)
+        function renderSummary(score, results) {
+            document.getElementById('score-display').textContent = score;
+            const container = document.getElementById('summary-container');
+            container.innerHTML = '';
+
+            results.forEach((result, index) => {
+                const summaryItem = document.createElement('div');
+                summaryItem.className = `summary-item ${result.isCorrect ? 'correct' : 'incorrect'}`;
+                
+                let html = `
+                    <p><strong>${index + 1}. ${result.question}</strong></p>
+                    <p>Tu Respuesta: <span class="user-answer">${result.userAnswer}</span></p>
+                    <p class="correct-answer">Respuesta Correcta: ${result.correctAnswer}</p>
+                `;
+                
+                summaryItem.innerHTML = html;
+                container.appendChild(summaryItem);
+            });
+        }
+
+        // 6. FUNCIÓN DE REINTENTAR
+        function reattemptTest() {
+            startTest();
+        }
+
+        // Mostrar la página inicial al cargar
+        document.addEventListener('DOMContentLoaded', () => {
+            showPage('initial-page');
+        });
+    </script>
+</body>
+</html>

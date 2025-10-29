@@ -412,7 +412,8 @@
                     question: q.q,
                     correctAnswer: q.answer,
                     userAnswer: userAnswer,
-                    isCorrect: isCorrect
+                    isCorrect: isCorrect,
+                    image: q.image || null
                 });
             });
 
@@ -431,6 +432,7 @@
                 summaryItem.className = `summary-item ${result.isCorrect ? 'correct' : 'incorrect'}`;
                 
                 let html = `
+                    <div class="sign-image">${result.image}</div>
                     <p><strong>${index + 1}. ${result.question}</strong></p>
                     <p>Tu Respuesta: <span class="user-answer">${result.userAnswer}</span></p>
                     <p class="correct-answer">Respuesta Correcta: ${result.correctAnswer}</p>

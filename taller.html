@@ -1,363 +1,726 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Café de Tere - Social Media Analytics Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <title>Dashboard de Sentimientos - El Café de Tere</title>
     <style>
         :root {
-            --color-primary: #BDC730;
-            --color-secondary: #DEE398;
-            --color-background: #FFFFFF;
-            --color-accent: #AED1B8;
-            --color-dark-accent: #5DA271;
-            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --primary-color: #a0512deb; /* Marrón café */
+            --primary-color-dark: #A0522D; /* Marrón café */
+            --secondary-color: #D2B48C; /* Beige claro */
+            --background-color: #F8F4E3; /* Crema suave */
+            --text-color: #333333;
+            --positive-color: #38A169; /* Verde */
+            --negative-color: #E53E3E; /* Rojo */
+            --neutral-color: #3182CE; /* Azul */
+            --shadow-light: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-
         body {
-            font-family: var(--font-family);
-            background-color: var(--color-background);
-            color: #333;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            line-height: 1.6;
+            background-color: var(--background-color);
+            color: var(--text-color);
         }
-
         .header {
-            background-color: var(--color-dark-accent);
-            color: var(--color-background);
+            background-color: var(--primary-color);
+            color: white;
             padding: 20px;
             text-align: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow-light);
         }
-
+        .header h1 {
+            margin: 0;
+            font-size: 2em;
+        }
         .container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
             padding: 20px;
             max-width: 1400px;
-            margin: auto;
+            margin: 0 auto;
         }
-
-        .grid {
+        .card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-light);
+        }
+        /* Layout Grid */
+        .grid-3 {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
-            margin-bottom: 30px;
         }
-
-        .card {
-            background-color: var(--color-secondary);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s;
+        .grid-2-1 {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
         }
-
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .card h2 {
-            margin-top: 0;
-            color: var(--color-dark-accent);
-            border-bottom: 2px solid var(--color-primary);
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-
-        .metric p {
-            margin: 5px 0;
-            font-size: 1.1em;
-        }
-
-        .metric strong {
-            color: var(--color-primary);
-            font-size: 1.2em;
-        }
-
-        .table-container {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-        }
-
-        th, td {
-            padding: 12px 15px;
-            border-bottom: 1px solid var(--color-accent);
-        }
-
-        th {
-            background-color: var(--color-primary);
-            color: var(--color-background);
-            font-weight: bold;
-        }
-
-        tr:nth-child(even) {
-            background-color: var(--color-secondary);
-        }
-
-        tr:hover {
-            background-color: var(--color-accent);
-        }
-
-        /* Specific styles for the Topics and Conclusion section */
-        .topics-conclusion {
-            grid-column: 1 / -1;
-        }
-
-        .topic-item {
-            border: 1px solid var(--color-primary);
+        /* Elementos específicos */
+        .summary-box {
+            background-color: var(--secondary-color);
             padding: 15px;
             border-radius: 6px;
-            margin-bottom: 15px;
-            background-color: var(--color-background);
+            margin-bottom: 20px;
         }
-
-        .topic-item h3 {
-            color: var(--color-dark-accent);
+        .summary-box h3 {
+            color: var(--primary-color);
             margin-top: 0;
         }
-
-        .topic-item p:first-of-type {
+        .metric {
+            text-align: center;
+            padding: 10px;
+            border-left: 3px solid var(--primary-color);
+        }
+        .metric-value {
+            font-size: 2.5em;
             font-weight: bold;
+            color: var(--primary-color);
+            margin: 5px 0;
         }
-
-        .conclusion-box {
-            background-color: var(--color-primary);
-            color: #333;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 20px;
+        .metric-label {
+            font-size: 0.9em;
+            color: #666;
         }
-
-        .conclusion-box h3 {
-            color: var(--color-background);
-            margin-top: 0;
-            border-bottom: 2px solid var(--color-background);
-            padding-bottom: 5px;
+        /* Estilos para el Gráfico de Sentimientos */
+        #sentiment-chart-container {
+            height: 250px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-
-        .conclusion-box ol {
-            padding-left: 20px;
+        .pie-slice {
+            border-radius: 50%;
+            height: 100%;
+            width: 100%;
+            display: block;
         }
-
-        .conclusion-box li {
+        /* Estilos para Acordeón de Tópicos */
+        .accordion-item {
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .accordion-title {
+            background-color: var(--secondary-color);
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            color: var(--primary-color);
+            border-radius: 4px 4px 0 0;
+        }
+        .accordion-content {
+            padding: 15px;
+            border-top: 1px solid #eee;
+            display: none;
+            overflow: hidden;
+            background-color: #fffaf0;
+        }
+        .sentiment-block {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        .positive { background-color: #e6fffa; border-left: 5px solid var(--positive-color); }
+        .negative { background-color: #fff5f5; border-left: 5px solid var(--negative-color); }
+        .challenge { background-color: #ebf8ff; border-left: 5px solid var(--neutral-color); }
+        .sentiment-block strong {
+            display: block;
             margin-bottom: 5px;
-            color: var(--color-background);
         }
+        .colocation-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .colocation-list li {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+        /* Estilos para Tablas */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .data-table th {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+        }
+        .data-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        /* Estilo para las etiquetas interactivas */
+.interactive-tag {
+    display: inline-block;
+    padding: 8px 12px;
+    margin: 5px;
+    border-radius: 20px;
+    background-color: var(--primary-color-dark); /* Color oscuro para contraste */
+    color: white;
+    cursor: pointer; /* Indica que es clickeable */
+    transition: background-color 0.2s, transform 0.1s;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.interactive-tag:hover {
+    background-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.interactive-tag.active {
+    background-color: var(--secondary-color); /* Color de resaltado al ser seleccionada */
+}
+
+/* Estilo para la caja de detalle */
+#entity-detail-box {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-left: 5px solid var(--primary-color);
+    background-color: var(--background-color-light);
+    min-height: 50px;
+    transition: all 0.3s ease-in-out;
+}
+
+#entity-detail-box p {
+    margin: 0;
+    line-height: 1.4;
+}
+
+        /* --- INICIO: Media Queries para Responsive Design --- */
+    @media (max-width: 768px) {
+        /* 1. Contenedor principal: Vuelve a una sola columna */
+        .container {
+            padding: 10px;
+        }
+
+        /* 2. Reseteo de Grids: Vuelven a ser de una sola columna */
+        .grid-3, .grid-2-1 {
+            grid-template-columns: 1fr;
+            gap: 15px; /* Reduce el espacio */
+        }
+
+        /* 3. Ajuste del Card del Sentimiento y Pie Chart */
+        #sentiment-chart-container {
+            height: 200px; /* Hace el gráfico más pequeño */
+        }
+        
+        /* 4. Ajuste de Métrica (para que no se amontonen) */
+        .grid-3 > .metric {
+             /* Convierte las métricas en una fila única horizontal */
+            display: flex;
+            flex-direction: column; 
+            align-items: center;
+            border-left: none;
+            border-bottom: 2px solid var(--primary-color);
+            padding: 10px 0;
+        }
+        .metric-value {
+            font-size: 2em; /* Reduce el tamaño del texto grande */
+        }
+
+        /* 5. Ajuste de la lista de Colocaciones */
+        .colocation-list {
+            justify-content: center; /* Centra las etiquetas */
+        }
+        
+        /* 6. Heatmap (Asegura que la tabla se pueda desplazar) */
+        .card > div[style*="overflow-x"] {
+            overflow-x: scroll; /* Fuerza el desplazamiento horizontal si la tabla es muy ancha */
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 7. Ajuste de Tablas (Headers más pequeños) */
+        .data-table th, .data-table td {
+            font-size: 0.8em;
+            padding: 3px;
+        }
+    }
+    /* --- FIN: Media Queries para Responsive Design --- */
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h1>Café de Tere - Social Media Analytics Dashboard 📊</h1>
-    <p>Data-driven insights for strategic decision-making.</p>
-</div>
+    <div class="header">
+        <h1>☕ Dashboard: Análisis de Sentimientos - El Café de Tere en X</h1>
+        <p>Posición de Marca, Estrategias y Desafíos</p>
+    </div>
 
-<div class="container">
+    <div class="container">
 
-    <div class="grid">
-        <div class="card metric">
-            <h2>Key Social Metrics Overview</h2>
-            <p>Total Posts Analyzed: <strong>1199</strong></p>
-            <p>Average Favorite Count: <strong>12.20</strong></p>
-            <p>Average Retweet Count: <strong>33.93</strong></p>
-            <p>Mean User Followers: <strong>5,046</strong> (Std Dev: 72,793)</p>
-            <p>Max Favorite Count: <strong>2,733</strong></p>
-            <p>Max Retweet Count: <strong>28,090</strong></p>
+        <div class="grid-2-1">
+            <div class="card">
+                <h2>📊 Resumen Ejecutivo y Conclusión de Negocio</h2>
+                <div class="summary-box">
+                    <h3>Resumen de Temáticas (Topics)</h3>
+                    <p id="summary-text"></p>
+                </div>
+                <div class="summary-box">
+                    <h3>Conclusión y Giro Estratégico Recomendado</h3>
+                    <p id="conclusion-text"></p>
+                </div>
+            </div>
+            <div class="card">
+                <h2>📈 Sentimiento Global</h2>
+                <div id="sentiment-chart-container">
+                    <div class="pie-slice" id="sentiment-pie"></div>
+                </div>
+                <div class="grid-3" style="margin-top: 20px;">
+                    <div class="metric">
+                        <span class="metric-value" style="color: var(--negative-color);" id="neg-val"></span>
+                        <span class="metric-label">Negativos (47%)</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-value" style="color: var(--positive-color);" id="pos-val"></span>
+                        <span class="metric-label">Positivos (38%)</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-value" style="color: var(--neutral-color);" id="neu-val"></span>
+                        <span class="metric-label">Neutros (15%)</span>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card">
-            <h2>Correlation: Followers vs. Engagement</h2>
-            <p>Followers count has a **moderate positive correlation** with **Favorite Count** ($\mathbf{r = 0.37}$) .</p>
-            <p>Followers count has a **low positive correlation** with **Retweet Count** ($\mathbf{r = 0.13}$).</p>
-            <p>This suggests that while high follower counts somewhat boost engagement, other factors significantly drive Retweets.</p>
-            <p>Friend Count vs. Followers: $\mathbf{r = 0.58}$ (Moderate-strong correlation).</p>
-        </div>
-        <div class="card" style="grid-column: span 2;">
-            <h2>Top 10 High-Engagement Tweets (Total Engagement Score)</h2>
-            <div class="table-container">
-                <table id="top-tweets-table">
+
+        <div class="grid-2-1">
+            <div class="card">
+                <h2>💬 Tópicos y Temáticas Principales (Voz del Cliente)</h2>
+                <div id="topics-accordion">
+                    </div>
+            </div>
+            <div class="card">
+                <h2>⭐ Top 10 Tweets con Más Engagement</h2>
+                <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Tweet Excerpt</th>
-                            <th>Favorites</th>
-                            <th>Retweets</th>
-                            <th>Engagement Score</th>
+                            <th>Tweet</th>
+                            <th>Likes</th>
+                            <th>RTs</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="top-engagement-table">
                         </tbody>
                 </table>
             </div>
         </div>
-    </div>
 
-    <div class="grid">
-        <div class="card" style="grid-column: 1 / -1;">
-            <h2>Engagement Heatmap: Activity by Day and Hour (Count)</h2>
-            <p><em>The chart visualizes tweet count, where -1 indicates no data/zero activity for that specific hour.</em></p>
-            <canvas id="engagementHeatmapChart"></canvas>
-        </div>
-    </div>
 
-    <div class="grid topics-conclusion">
-        <div class="card">
-            <h2>Key Business Topics & Challenges</h2>
-            <div id="topics-list">
+
+        <div class="grid-2-1">
+            <div class="card">
+                <h2>🔥 Patrones de Interacción: Likes por Hora y Día</h2>
+                <p>Identifica los "puntos calientes" para optimizar el horario de publicación.</p>
+                <div style="overflow-x: auto;">
+                    <table class="data-table" id="heatmap-table" style="min-width: 100px;">
+                        </table>
+                </div>
+            </div>
+            <div class="card">
+                <h2>📉 Estadísticas Clave</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Métrica</th>
+                            <th>Media (Avg)</th>
+                            <th>Max.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stats-table">
+                        </tbody>
+                </table>
+                
+                <div style="margin-top: 20px;">
+                <h2>🔗 Colocaciones Más Relevantes (Top 10)</h2>
+                <ul class="colocation-list" id="colocations-list">
+                     </ul>
+                </div> 
+
+                <h2>🔗 Entidades Más Relevantes</h2>
+            <div id="entity-list-container" class="colocation-list">
                 </div>
             
-            <div class="conclusion-box">
-                <h3>Final Conclusion & Tactical Priorities 🎯</h3>
-                <p>The brand is **iconic** but operates in a **polarised** environment. Friction points are price/value, product consistency, payment methods, and operational experience.</p>
-                <h4>Top Priorities:</h4>
-                <ol>
-                    <li>**Habilitar pagos con tarjeta/QR** (Enable card/QR payments) to reduce friction.</li>
-                    <li>**Recalibrar y estandarizar recetas** (Recalibrate and standardize recipes), especially for *tigrillo* and *bolón*, controlling temperature and salt.</li>
-                    <li>**Ajustar la propuesta de valor** (Adjust the value proposition): portions, combos, and delivery/ají policies.</li>
-                    <li>**Fortalecer el discurso de inclusión y emprendimiento** (Strengthen the discourse of inclusion and entrepreneurship) with empathetic responses.</li>
-                    <li>**Capitalizar la viralidad** (Capitalize on virality) with channel-specific activations and offers.</li>
-                </ol>
+            <div id="entity-detail-box">
+                <p>Haga clic en una etiqueta para ver su detalle.</p>
+            </div>
             </div>
         </div>
+
+        <div class="card">
+            
+        </div>
+
     </div>
 
-</div>
-
-<script>
-    const data = {"describe_matrix": {"count": {"favorite_count": 1198.0, "id": 1199.0, "retweet_count": 1198.0, "user.followers_count": 1198.0, "user.friends_count": 1198.0}, "mean": {"favorite_count": 12.202003338898164, "id": 1.1909482828284088e+18, "retweet_count": 33.925709515859765, "user.followers_count": 5046.368948247078, "user.friends_count": 1021.626878130217}, "std": {"favorite_count": 104.53245995361105, "id": 3.4425044120617452e+16, "retweet_count": 815.0630495614117, "user.followers_count": 72793.23507864912, "user.friends_count": 6446.56499792927}, "min": {"favorite_count": 0.0, "id": 167.0, "retweet_count": 0.0, "user.followers_count": 1.0, "user.friends_count": 0.0}, "25%": {"favorite_count": 0.0, "id": 1.1918218393786122e+18, "retweet_count": 0.0, "user.followers_count": 186.5, "user.friends_count": 262.0}, "50%": {"favorite_count": 0.0, "id": 1.191929775016874e+18, "retweet_count": 0.0, "user.followers_count": 483.0, "user.friends_count": 532.5}, "75%": {"favorite_count": 2.0, "id": 1.192133212113404e+18, "retweet_count": 1.0, "user.followers_count": 1377.25, "user.friends_count": 992.75}, "max": {"favorite_count": 2733.0, "id": 1.192608404327547e+18, "retweet_count": 28090.0, "user.followers_count": 1997889.0, "user.friends_count": 221536.0}}, "corr_matrix": {"user.followers_count": {"user.followers_count": 1.0, "user.friends_count": 0.5770596319321523, "id": -0.14474055631145605, "favorite_count": 0.3743598815158741, "retweet_count": 0.1283469079000893}, "user.friends_count": {"user.followers_count": 0.5770596319321523, "user.friends_count": 1.0, "id": -0.09306009552025668, "favorite_count": 0.16383723344715007, "retweet_count": 0.05420889555106655}, "id": {"user.followers_count": -0.14474055631145605, "user.friends_count": -0.09306009552025668, "id": 1.0, "favorite_count": -0.1278758415977603, "retweet_count": 0.07590999064439975}, "favorite_count": {"user.followers_count": 0.3743598815158741, "user.friends_count": 0.16383723344715007, "id": -0.1278758415977603, "favorite_count": 1.0, "retweet_count": 0.1210178774154952}, "retweet_count": {"user.followers_count": 0.1283469079000893, "user.friends_count": 0.05420889555106655, "id": 0.07590999064439975, "favorite_count": 0.1210178774154952, "retweet_count": 1.0}}, "engagement_matrix": {"text": {"33": "@Cesar_Antonio_F @LivePalestina @Jou_Kaiser @tere_marinovic @elvillegaschile @sergioulloa1 @German69738375\u2026 https://t.co/0mgrQNJVrU", "3276": "@dearc26 @eluniversocom Q insoportable estas personas resentidas. Viven amargados! Hay gustos y gustos. El bol\u00f3n de Tere es rico!", "3738": "Se acab\u00f3 el chisme con el #closetdedav y ahora leo twists del #cafedetere... qu\u00e9 tiro guayaquile\u00f1os todo bien en casa?", "2198": "@KaritoSoBsc Oe oe oe bien recuerdo que una vez twitteaste qu\u00e9 m\u00e1s barato Te sal\u00eda comprar un departamento en salin\u2026 https://t.co/FL0MGZv9Hx", "1951": "La se\u00f1ora del caf\u00e9 d Tere es la prueba de q trabajando duro se puede llegar a rico. Ella ha demostrado q no es nece\u2026 https://t.co/JMNbFy5KLS", "3608": "Cuando trabajaba en el parque Col\u00f3n una vez quise ir al #cafedetere que hay ah\u00ed vi los precios y me parecieron dema\u2026 https://t.co/LP8o8NIHU6", "3992": "@ornella_soriano @_SantinoBoy @CafedeTere Que comentario tan regionalista... cabeza hueca que piensa que en la sier\u2026 https://t.co/cWBukqR7EM", "3457": "@tere_marinovic En esta crisis, no hay buenos ni malos, se enfrentan entre chilenos, padres y familias. Y todo este\u2026 https://t.co/CQsnaeEs8Z", "2148": "Si el cafe de tere te parece que es caro, turro y puro mkt anda busca otro bolon chtm\nEl ecuatoriano pr\u00f3spero tiene\u2026 https://t.co/APCz649NbZ", "932": "Soy cliente regular del Caf\u00e9 de Tere. Ahora bien, que siga sin aceptar tarjetas de cr\u00e9dito es indefendible. Do\u00f1a Te\u2026 https://t.co/jHdbRXcdfa"}, "favorite_count": {"33": 10.0, "3276": 79.0, "3738": 10.0, "2198": 46.0, "1951": 332.0, "3608": 1.0, "3992": 1.0, "3457": 7.0, "2148": 187.0, "932": 130.0}, "retweet_count": {"33": 1.0, "3276": 1.0, "3738": 3.0, "2198": 3.0, "1951": 81.0, "3608": 0.0, "3992": 0.0, "3457": 3.0, "2148": 63.0, "932": 35.0}, "total_engagement": {"33": 250.0, "3276": 86.81318681318682, "3738": 66.66666666666666, "2198": 63.888888888888886, "1951": 61.141804788213626, "3608": 33.33333333333333, "3992": 33.33333333333333, "3457": 19.444444444444446, "2148": 15.583333333333332, "932": 13.30603889457523}}, "heatmap": {"Monday": {"0.0": -1.0, "1.0": 0.0, "2.0": -1.0, "3.0": 0.0, "4.0": -1.0, "5.0": -1.0, "6.0": -1.0, "7.0": 0.0, "8.0": -1.0, "9.0": 0.0, "10.0": -1.0, "11.0": 0.0, "12.0": -1.0, "13.0": -1.0, "14.0": 1.0, "15.0": 1.0, "16.0": 3.0, "17.0": 177.0, "18.0": -1.0, "19.0": -1.0, "20.0": -1.0, "21.0": -1.0, "22.0": 2734.0, "23.0": 82.0}, "Tuesday": {"0.0": 1.0, "1.0": 32.0, "2.0": 20.0, "3.0": 0.0, "4.0": 3.0, "5.0": -1.0, "6.0": -1.0, "7.0": 1.0, "8.0": -1.0, "9.0": 0.0, "10.0": -1.0, "11.0": 1.0, "12.0": 3.0, "13.0": 73.0, "14.0": 195.0, "15.0": 18.0, "16.0": 175.0, "17.0": 102.0, "18.0": 1012.0, "19.0": 651.0, "20.0": 210.0, "21.0": 412.0, "22.0": 1555.0, "23.0": 1331.0}, "Wednesday": {"0.0": 209.0, "1.0": 906.0, "2.0": 1789.0, "3.0": 895.0, "4.0": 265.0, "5.0": 37.0, "6.0": 27.0, "7.0": 31.0, "8.0": 37.0, "9.0": 4.0, "10.0": 12.0, "11.0": 64.0, "12.0": 46.0, "13.0": 115.0, "14.0": 98.0, "15.0": 76.0, "16.0": 36.0, "17.0": 160.0, "18.0": 24.0, "19.0": 34.0, "20.0": 22.0, "21.0": 282.0, "22.0": 65.0, "23.0": 83.0}, "Thursday": {"0.0": 37.0, "1.0": 104.0, "2.0": 40.0, "3.0": 10.0, "4.0": 15.0, "5.0": 8.0, "6.0": 0.0, "7.0": 0.0, "8.0": -1.0, "9.0": 0.0, "10.0": 0.0, "11.0": 1.0, "12.0": 17.0, "13.0": 5.0, "14.0": 1.0, "15.0": 3.0, "16.0": 57.0, "17.0": 29.0, "18.0": 10.0, "19.0": 1.0, "20.0": 16.0, "21.0": 1.0, "22.0": 1.0, "23.0": 100.0}, "Friday": {"0.0": 5.0, "1.0": 0.0, "2.0": -1.0, "3.0": -1.0, "4.0": -1.0, "5.0": -1.0, "6.0": -1.0, "7.0": -1.0, "8.0": -1.0, "9.0": -1.0, "10.0": -1.0, "11.0": -1.0, "12.0": -1.0, "13.0": -1.0, "14.0": 8.0, "15.0": -1.0, "16.0": -1.0, "17.0": -1.0, "18.0": -1.0, "19.0": -1.0, "20.0": -1.0, "21.0": -1.0, "22.0": -1.0, "23.0": -1.0}, "Saturday": {"0.0": 5.0, "1.0": -1.0, "2.0": -1.0, "3.0": -1.0, "4.0": -1.0, "5.0": -1.0, "6.0": -1.0, "7.0": -1.0, "8.0": -1.0, "9.0": -1.0, "10.0": 11.0, "11.0": -1.0, "12.0": -1.0, "13.0": 0.0, "14.0": 0.0, "15.0": 5.0, "16.0": 2.0, "17.0": 8.0, "18.0": -1.0, "19.0": -1.0, "20.0": -1.0, "21.0": 0.0, "22.0": -1.0, "23.0": -1.0}, "Sunday": {"0.0": -1.0, "1.0": 0.0, "2.0": -1.0, "3.0": -1.0, "4.0": -1.0, "5.0": -1.0, "6.0": -1.0, "7.0": -1.0, "8.0": -1.0, "9.0": -1.0, "10.0": -1.0, "11.0": -1.0, "12.0": -1.0, "13.0": 7.0, "14.0": -1.0, "15.0": 0.0, "16.0": 0.0, "17.0": -1.0, "18.0": 1.0, "19.0": -1.0, "20.0": -1.0, "21.0": -1.0, "22.0": 0.0, "23.0": -1.0}}, "topics": {"topics": [{"title": "Precio y percepci\u00f3n de valor", "detail": "Fuerte polarizaci\u00f3n: para muchos es \u201ccaro/sobrevalorado\u201d (bol\u00f3n $3,5\u2013$5, jugos hasta $8, extras como huevo $1, m\u00ednimos de delivery altos); otros justifican que se paga limpieza, local, marca y servicio.", "challenge": "Definir estrategia de precios y porciones (combos, tama\u00f1os, \u201cbol\u00f3n popular\u201d en franjas), hacer transparente la propuesta de valor y costos, y ofrecer beneficios (lealtad, horas felices) para mejorar la ecuaci\u00f3n valor/precio."}, {"title": "Calidad y consistencia del producto", "detail": "Opiniones dispares: \u201cnormalito\u201d, \u201cperdi\u00f3 saz\u00f3n/industrializado\u201d, tigrillo \u201csopudo/ins\u00edpido\u201d, bol\u00f3n fr\u00edo o muy salado, uso de l\u00e1cteos excesivos o margarina vs otros que lo consideran excelente. Variabilidad entre locales.", "challenge": "Refinar y estandarizar recetas y procesos (temperatura, salado, grasas), auditor\u00edas sensoriales por local, KPIs de calidad en tiempo real y pilotos de receta \u201ccl\u00e1sico criollo\u201d vs \u201csello Tere\u201d para reconciliar expectativas."}, {"title": "Medios de pago", "detail": "Reclamo recurrente por no aceptar tarjetas/datafast; fricci\u00f3n de usar solo efectivo; algunos declaran no volver por esta raz\u00f3n.", "challenge": "Habilitar POS, QR y billeteras; comunicar razones y fechas de implementaci\u00f3n; incentivar pagos digitales con peque\u00f1os descuentos y reducir fuga de ventas."}, {"title": "Experiencia de servicio y operaci\u00f3n en sala", "detail": "Limpieza muy valorada; cr\u00edticas a autoservicio/recoger bandeja; colas; l\u00edmites de aj\u00ed por mesa; porciones percibidas como peque\u00f1as vs precio; confort (A/C) inconsistente.", "challenge": "Redise\u00f1ar flujos (se\u00f1al\u00e9tica, estaciones de bandejas), gestionar picos (pre-order/pick-up), revisar pol\u00edtica de porciones/extras/aj\u00ed, asegurar A/C y confort constantes."}, {"title": "Delivery y agregadores", "detail": "Molestia por m\u00ednimos a domicilio (p.ej. $17) y cuentas altas en apps con porciones peque\u00f1as.", "challenge": "Replantear m\u00ednimos por zona/hora, crear combos exclusivos de delivery y negociar comisiones con apps para sostener porci\u00f3n y precio percibido."}, {"title": "Gesti\u00f3n de reputaci\u00f3n y polarizaci\u00f3n social", "detail": "Conversaci\u00f3n masiva \u201clovers vs haters\u201d con connotaciones de clase (\u201cani\u00f1ado\u201d, \u201cresentido\u201d); al mismo tiempo orgullo por el caso de emprendimiento.", "challenge": "Social listening activo, protocolo de respuesta emp\u00e1tica, contenidos que celebren inclusi\u00f3n y trabajo, voceros cre\u00edbles y activaciones que desactiven antagonismos (catas abiertas, visitas a cocina)."}, {"+title": "Competencia y alternativas", "detail": "Se comparan frecuentemente con huecas y marcas (Aloha, Amorfino, Juan Tonga, mercados, Sauces, etc.) percibidas como m\u00e1s ricas o m\u00e1s baratas.", "challenge": "Benchmarking continuo, diferenciar por higiene, consistencia, conveniencia y experiencia; colaboraciones/ediciones limitadas y mejoras del aj\u00ed como firma."}, {"title": "Portafolio y desarrollo de producto", "detail": "Estrellas: bol\u00f3n mixto y tigrillo. El aj\u00ed es muy apreciado. Cr\u00edticas al caf\u00e9 (bebida) y peticiones por jugo de bistec/sabor m\u00e1s \u201ccriollo\u201d.", "challenge": "Ajustar tigrillo y caf\u00e9; ofrecer versiones \u201ctradicional\u201d y \u201cTere\u201d; ampliar opciones (light/veg), estandarizar el aj\u00ed y permitir recargas razonables."}, {"title": "Autenticidad culinaria vs estandarizaci\u00f3n", "detail": "Parte del p\u00fablico siente p\u00e9rdida de \u201cesencia\u201d por industrializaci\u00f3n y exceso de l\u00e1cteos; otros valoran la estandarizaci\u00f3n y limpieza.", "challenge": "Recuperar preparaciones patrimoniales y t\u00e9cnicas (p. ej., jugo de bistec), comunicar origen y proveedores locales y balancear autenticidad con consistencia."}, {"title": "Expansi\u00f3n y escalabilidad", "detail": "Alta demanda por abrir en Sierra/Exterior; preocupaci\u00f3n de que el crecimiento afecte el sabor; rumores de adquisiciones.", "challenge": "Modelo de expansi\u00f3n controlada (pilotos en Sierra), manuales operativos robustos, control de calidad centralizado y narrativa de crecimiento sin perder saz\u00f3n."}, {"title": "Arquitectura de marca y posicionamiento", "detail": "Confusi\u00f3n habitual entre \u201cCaf\u00e9 de Tere\u201d y \u201cBol\u00f3n de Tere\u201d; asociaci\u00f3n casi exclusiva a bol\u00f3n pese a un men\u00fa mayor.", "challenge": "Aclarar naming y ampliar el imaginario: campa\u00f1as que destaquen m\u00e1s categor\u00edas (tigrillo, muchines, jugos), y storytelling del origen para fortalecer identidad."}, {"title": "Educaci\u00f3n de mercado y pricing", "detail": "Debate sobre costos vs. precio, disposici\u00f3n a pagar por ambiente/servicio y definici\u00f3n del target (aspiracional vs. masivo).", "challenge": "Comunicar de forma did\u00e1ctica qu\u00e9 incluye el precio (higiene, salarios, impuestos), ofrecer escalones de entrada y segmentar ofertas por ocasi\u00f3n y canal."}, {"title": "Seguridad alimentaria y salud", "detail": "Casos aislados de malestar y percepciones de \u201cgrasoso\u201d; tambi\u00e9n menciones positivas de que \u201cno es muy grasoso\u201d.", "challenge": "Auditor\u00edas sanitarias visibles, mejoras en insumos (aceites/grasas), informaci\u00f3n nutricional b\u00e1sica y certificaciones exhibidas en sala y RRSS."}, {"title": "Ubicaci\u00f3n, acceso y conveniencia", "detail": "Atributos valorados: cercan\u00eda al aeropuerto, parqueo y seguridad; colas desincentivan; horarios influyen en elecci\u00f3n.", "challenge": "Optimizar capacidad en horas pico, habilitar pre-pago/pre-order, ventanillas express y se\u00f1alizar parqueos/horarios de menor espera."}, {"title": "Aprovechamiento de la viralidad", "detail": "Tendencias y memes generaron \u201cpublicidad gratis\u201d; percepci\u00f3n de que la marca no capitaliz\u00f3 del todo la ola.", "challenge": "Playbook de real time marketing, UGC, alianzas con creadores y activaciones tem\u00e1ticas cuando la marca sea tendencia; medici\u00f3n de lift y conversi\u00f3n."}], "conclusion": "La marca es ic\u00f3nica y altamente conversada, pero opera en un terreno polarizado donde el precio/valor, la consistencia del sabor, los medios de pago y la experiencia operativa generan fricci\u00f3n. Prioridades t\u00e1cticas: 1) habilitar pagos con tarjeta/QR, 2) recalibrar y estandarizar recetas (en especial tigrillo/bol\u00f3n) con control de temperatura y salado, 3) ajustar la propuesta de valor (porciones, combos y pol\u00edticas de delivery/aj\u00ed), 4) fortalecer el discurso de inclusi\u00f3n y emprendimiento con respuestas emp\u00e1ticas y 5) capitalizar la viralidad con activaciones y ofertas por canal. Ejecutar estas mejoras deber\u00eda elevar satisfacci\u00f3n, reducir la conversaci\u00f3n negativa y sostener el crecimiento sin sacrificar autenticidad."}};
-
-    // Helper to format numbers
-    const formatNumber = (num) => new Intl.NumberFormat('en-US').format(num);
-
-    // --- 1. Populate Top Engaged Tweets Table ---
-    function populateTopTweets() {
-        const tableBody = document.querySelector('#top-tweets-table tbody');
-        const engagement = data.engagement_matrix;
-
-        // Combine data for easier sorting and filtering (only 10 are provided, so no sorting needed but good practice)
-        const tweetKeys = Object.keys(engagement.total_engagement);
-        const tweetData = tweetKeys.map(key => ({
-            text: engagement.text[key],
-            favorites: engagement.favorite_count[key],
-            retweets: engagement.retweet_count[key],
-            score: engagement.total_engagement[key]
-        }));
-
-        // Sort by score descending (though the input data seems to be roughly sorted)
-        tweetData.sort((a, b) => b.score - a.score);
-
-        tweetData.forEach(tweet => {
-            const row = tableBody.insertRow();
-            row.insertCell().textContent = tweet.text.length > 80 ? tweet.text.substring(0, 77) + '...' : tweet.text;
-            row.insertCell().textContent = formatNumber(tweet.favorites);
-            row.insertCell().textContent = formatNumber(tweet.retweets);
-            row.insertCell().textContent = tweet.score.toFixed(2);
-        });
+    <script>
+        // Datos JSON (Embedidos para simplicidad)
+        const rawData = {
+            "describe_matrix": {"count": {"favorite_count": 1198.0, "id": 1199.0, "retweet_count": 1198.0, "user.followers_count": 1198.0, "user.friends_count": 1198.0}, "mean": {"favorite_count": 12.20, "id": 1.19e+18, "retweet_count": 33.93, "user.followers_count": 5046.37, "user.friends_count": 1021.63}, "std": {"favorite_count": 104.53, "id": 3.44e+16, "retweet_count": 815.06, "user.followers_count": 72793.24, "user.friends_count": 6446.56}, "min": {"favorite_count": 0.0, "id": 167.0, "retweet_count": 0.0, "user.followers_count": 1.0, "user.friends_count": 0.0}, "25%": {"favorite_count": 0.0, "id": 1.19e+18, "retweet_count": 0.0, "user.followers_count": 186.5, "user.friends_count": 262.0}, "50%": {"favorite_count": 0.0, "id": 1.19e+18, "retweet_count": 0.0, "user.followers_count": 483.0, "user.friends_count": 532.5}, "75%": {"favorite_count": 2.0, "id": 1.19e+18, "retweet_count": 1.0, "user.followers_count": 1377.25, "user.friends_count": 992.75}, "max": {"favorite_count": 2733.0, "id": 1.19e+18, "retweet_count": 28090.0, "user.followers_count": 1997889.0, "user.friends_count": 221536.0}},
+            "corr_matrix": {"user.followers_count": {"user.followers_count": 1.0, "user.friends_count": 0.577, "id": -0.145, "favorite_count": 0.374, "retweet_count": 0.128}, "user.friends_count": {"user.followers_count": 0.577, "user.friends_count": 1.0, "id": -0.093, "favorite_count": 0.164, "retweet_count": 0.054}, "id": {"user.followers_count": -0.145, "user.friends_count": -0.093, "id": 1.0, "favorite_count": -0.128, "retweet_count": 0.076}, "favorite_count": {"user.followers_count": 0.374, "user.friends_count": 0.164, "id": -0.128, "favorite_count": 1.0, "retweet_count": 0.121}, "retweet_count": {"user.followers_count": 0.128, "user.friends_count": 0.054, "id": 0.076, "favorite_count": 0.121, "retweet_count": 1.0}},
+            "engagement_matrix": {"text": {"3276": "@dearc26 @eluniversocom Q insoportable estas personas resentidas. Viven amargados! Hay gustos y gustos. El bolón de Tere es rico!", "3738": "Se acabó el chisme con el #closetdedav y ahora leo twists del #cafedetere... qué tiro guayaquileños todo bien en casa?", "2198": "@KaritoSoBsc Oe oe oe bien recuerdo que una vez twitteaste qué más barato Te salía comprar un departamento en salin… https://t.co/FL0MGZv9Hx", "1951": "La señora del café d Tere es la prueba de q trabajando duro se puede llegar a rico. Ella ha demostrado q no es nece… https://t.co/JMNbFyKLS", "3457": "@tere_marinovic En esta crisis, no hay buenos ni malos, se enfrentan entre chilenos, padres y familias. Y todo este… https://t.co/CQsnaeEs8Z", "2148": "Si el cafe de tere te parece que es caro, turro y puro mkt anda busca otro bolon chtm\nEl ecuatoriano próspero tiene… https://t.co/APCz649NbZ", "932": "Soy cliente regular del Café de Tere. Ahora bien, que siga sin aceptar tarjetas de crédito es indefendible. Doña Te… https://t.co/jHdbRXcdfa", "2751": "El bolón de Tere no es nada fuera de lo común, malo tampoco es, en su tiempo fue lo mejorcito y ahora solo es tradi… https://t.co/NQIPQL9tNB", "347": "En fin,caso parcido en el café de Tere un cliente NO PAGA sólo por el bolon. También paga por la buena atención, el… https://t.co/fGLTTg0HBW", "810": "@gabita Gabita por cuestiones de trabajo hace años estuve en las cocinas de dos locales de Tere. PARECEN QUIROFANOS… https://t.co/MkVUhzydR2"}, "favorite_count": {"3276": 79.0, "3738": 10.0, "2198": 46.0, "1951": 332.0, "3457": 7.0, "2148": 187.0, "932": 130.0, "2751": 152.0, "347": 16.0, "810": 7.0}, "retweet_count": {"3276": 1.0, "3738": 3.0, "2198": 3.0, "1951": 81.0, "3457": 3.0, "2148": 63.0, "932": 35.0, "2751": 49.0, "347": 1.0, "810": 4.0}, "total_engagement": {"3276": 86.81, "3738": 66.67, "2198": 63.89, "1951": 61.14, "3457": 19.44, "2148": 15.58, "932": 13.31, "2751": 13.21, "347": 12.9, "810": 12.28}},
+            "heatmap": {"Monday": {"0.0": -1.0, "1.0": 0.0, "2.0": -1.0, "3.0": 0.0, "4.0": -1.0, "5.0": -1.0, "6.0": -1.0, "7.0": 0.0, "8.0": -1.0, "9.0": 0.0, "10.0": -1.0, "11.0": 0.0, "12.0": -1.0, "13.0": -1.0, "14.0": 1.0, "15.0": 1.0, "16.0": 3.0, "17.0": 177.0, "18.0": -1.0, "19.0": -1.0, "20.0": -1.0, "21.0": -1.0, "22.0": 2734.0, "23.0": 82.0}, "Tuesday": {"0.0": 1.0, "1.0": 32.0, "2.0": 20.0, "3.0": 0.0, "4.0": 3.0, "5.0": -1.0, "6.0": -1.0, "7.0": 1.0, "8.0": -1.0, "9.0": 0.0, "10.0": -1.0, "11.0": 1.0, "12.0": 3.0, "13.0": 73.0, "14.0": 195.0, "15.0": 18.0, "16.0": 174.0, "17.0": 102.0, "18.0": 1012.0, "19.0": 651.0, "20.0": 210.0, "21.0": 412.0, "22.0": 1555.0, "23.0": 1331.0}, "Wednesday": {"0.0": 209.0, "1.0": 906.0, "2.0": 1789.0, "3.0": 895.0, "4.0": 265.0, "5.0": 37.0, "6.0": 27.0, "7.0": 31.0, "8.0": 37.0, "9.0": 4.0, "10.0": 12.0, "11.0": 64.0, "12.0": 46.0, "13.0": 115.0, "14.0": 98.0, "15.0": 76.0, "16.0": 35.0, "17.0": 160.0, "18.0": 24.0, "19.0": 34.0, "20.0": 22.0, "21.0": 282.0, "22.0": 65.0, "23.0": 83.0}, "Thursday": {"0.0": 37.0, "1.0": 104.0, "2.0": 40.0, "3.0": 10.0, "4.0": 15.0, "5.0": 8.0, "6.0": 0.0, "7.0": 0.0, "8.0": -1.0, "9.0": 0.0, "10.0": 0.0, "11.0": 1.0, "12.0": 17.0, "13.0": 5.0, "14.0": 1.0, "15.0": 3.0, "16.0": 57.0, "17.0": 29.0, "18.0": 0.0, "19.0": 1.0, "20.0": 16.0, "21.0": 1.0, "22.0": 1.0, "23.0": 100.0}, "Friday": {"0.0": 5.0, "1.0": 0.0, "2.0": -1.0, "3.0": -1.0, "4.0": -1.0, "5.0": -1.0, "6.0": -1.0, "7.0": -1.0, "8.0": -1.0, "9.0": -1.0, "10.0": -1.0, "11.0": -1.0, "12.0": -1.0, "13.0": -1.0, "14.0": 8.0, "15.0": -1.0, "16.0": -1.0, "17.0": -1.0, "18.0": -1.0, "19.0": -1.0, "20.0": -1.0, "21.0": -1.0, "22.0": -1.0, "23.0": -1.0}, "Saturday": {"0.0": 5.0, "1.0": -1.0, "2.0": -1.0, "3.0": -1.0, "4.0": -1.0, "5.0": -1.0, "6.0": -1.0, "7.0": -1.0, "8.0": -1.0, "9.0": -1.0, "10.0": 11.0, "11.0": -1.0, "12.0": -1.0, "13.0": 0.0, "14.0": 0.0, "15.0": 5.0, "16.0": 2.0, "17.0": 8.0, "18.0": -1.0, "19.0": -1.0, "20.0": -1.0, "21.0": 0.0, "22.0": -1.0, "23.0": -1.0}, "Sunday": {"0.0": -1.0, "1.0": 0.0, "2.0": -1.0, "3.0": -1.0, "4.0": -1.0, "5.0": -1.0, "6.0": -1.0, "7.0": -1.0, "8.0": -1.0, "9.0": -1.0, "10.0": -1.0, "11.0": -1.0, "12.0": -1.0, "13.0": 7.0, "14.0": -1.0, "15.0": 0.0, "16.0": 0.0, "17.0": -1.0, "18.0": 1.0, "19.0": -1.0, "20.0": -1.0, "21.0": -1.0, "22.0": 0.0, "23.0": -1.0}},
+            "topics": {"topics": [{"title": "Precio y percepción de “sobrevalorado”", "detail": "Alto volumen de quejas por precios de bolones (3,50–5 USD) y extras (p.ej. huevo frito), comparados con huecas más baratas.", "positive": "Clientes justifican precio por higiene, locales cómodos, porciones que ‘llenan’ y consistencia de oferta.", "negative": "“Caro/robo/sobrevalorado”; comparación con mercados y huecas de 1–2 USD; relación precio-sabor cuestionada.", "challenge": "Clarificar propuesta de valor y costos; lanzar combos/porciones S-M-L; precios ‘desde’; días/horas con promos; comunicar estándares e ingredientes."}, {"title": "Sabor y consistencia del producto (bolón y tigrillo)", "detail": "Opiniones polarizadas: para algunos es referente; para otros, “normalito”, “seco”, “frío” o con exceso de lácteos.", "positive": "Bolón mixto (maduro/chicharrón) y chicharrón muy bien valorados; varios destacan el tigrillo y el ají.", "negative": "Críticas a tigrillo “sopudo/insípido”; bolones servidos fríos; sabor “industrializado”; uso de margarina; pérdida de sazón original.", "challenge": "Programa de control sensorial por local; auditorías de temperatura/grasas; receta única vs ediciones ‘artesanales’; pilotos de mejora de tigrillo/aji."}, {"title": "Relación porción–valor percibido", "detail": "Debate sobre tamaño vs precio y ‘llenura’.", "positive": "Clientes dicen que “mantiene lleno” y valoran la satisfacción del plato.", "negative": "Percepción de porciones pequeñas por el precio.", "challenge": "Ofrecer tamaños y ‘upgrades’ claros; fotos reales; bundle de proteína/jugo a precio cerrado."}, {"title": "Métodos de pago y fricciones de compra", "detail": "Reclamo recurrente: no aceptar tarjetas/medios electrónicos.", "positive": "Algunos ven el proceso rápido y ordenado cuando funciona.", "negative": "“Cash-only”, molestia por falta de POS/QR/contactless.", "challenge": "Implementar POS, QR y wallets; comunicar dónde ya opera; meta: >90% transacciones electrónicas en 90 días."}, {"title": "Delivery y mínimos de pedido", "detail": "Quejas por mínimo elevado (p.ej. 17 USD) y costos.", "positive": "Alta demanda a domicilio en fines de semana/familias.", "negative": "Percepción de delivery “caro” para pedidos pequeños.", "challenge": "Escalonar mínimos por zona/horario; menús de envío económico; alianzas con apps; cocinas de reparto por sector."}, {"title": "Limpieza, ambiente y servicio", "detail": "La higiene es un diferenciador percibido; hay críticas puntuales de atención/tiempos.", "positive": "Cocinas “como quirófanos”, locales limpios y ambiente acogedor.", "negative": "Casos de platos fríos, tiempos y protocolo poco claro (retiro de bandejas).", "challenge": "Estandarizar tiempos de pase; checklist de sala; señalética de autoservicio; KPI de temperatura/tiempo y encuestas QR."}, {"title": "Marca, marketing y reputación (polarización)", "detail": "Caso de éxito admirado que genera discusión ‘lovers vs haters’.", "positive": "Orgullo por la historia de emprendimiento; top-of-mind nacional; “parada obligada”.", "negative": "Percepción de elitismo; ataques en redes; discusión clasista (‘aniñado vs chiro’).", "challenge": "Plan de reputación y escucha activa; narrativa inclusiva; vocería con datos (empleo, proveedores); campañas con causa y comunidad."}, {"title": "Autenticidad vs expansión (‘industrialización’)", "detail": "Se percibe pérdida de ‘sazón de hueca’ al crecer.", "positive": "Escala que integró distintos públicos; consistencia básica.", "negative": "“Perdió la esencia”; “industrializado”.", "challenge": "Líneas ‘Herencia’/’recetas de origen’ por tiempo limitado; entrenar ‘maestros de sazón’; rotación de lotes de chicharrón/queso controlada."}, {"title": "Comparación con competidores y alternativas", "detail": "Se mencionan Amorfino, Rey Bolón, Verde y Café, BolónCity, mercados y huecas barriales.", "positive": "El liderazgo trae benchmarking útil; algunos colocan a Tere en su Top 3.", "negative": "“Hay 2 o 3 mejores y más baratos”.", "challenge": "Mapear categoría y gaps de sabor/precio; diferenciar con innovación (sabores, toppings, proteínas, ajiologías) sin perder core."}, {"title": "Portafolio y extras (ají, jugos, café, huevos)", "detail": "El ají y jugos generan amor/odio; costos de extras levantan polvo.", "positive": "Jugo de naranja muy valorado; ají amado por parte de la clientela.", "negative": "“Ají no es ají”; café regular; $1 por huevo frito incomoda; precios altos en bebidas en algunos casos.", "challenge": "Reformulación de ají con catas; ‘café mejorado’; precios psicológicos de extras; bundles desayuno con bebida."}, {"title": "Expansión geográfica y demanda insatisfecha", "detail": "Alta intención en Sierra/Quito/Cuenca y hasta exterior; parada de quiteños al llegar a GYE.", "positive": "Marca aspiracional con demanda fuera de GYE.", "negative": "Pérdida de ventas por no estar en Sierra; logística/pagos limitan alcance.", "challenge": "Pilotos pop-up/dark kitchen en Quito; franquicias selectivas; ecommerce con envíos de kits; estudio de plaza y unit economics."}, {"title": "Comunicación en redes y manejo de crisis", "detail": "Oleadas virales dan ‘publicidad gratis’ pero también desgaste.", "positive": "Alta conversación y recordación; oportunidad de insights en tiempo real.", "negative": "Escalada de hate, comparaciones y desinformación; respuestas defensivas entre usuarios.", "challenge": "Playbook de crisis, social listening, respuesta empática; contenidos ‘behind the scenes’ de calidad, costos y proveedores; activación con creadores gastronómicos."}], "summary": "La conversación gira en torno a precio percibido como alto, sabor/consistencia del bolón y tigrillo, fricciones por no aceptar tarjetas, delivery con mínimos elevados, y una fuerte polarización entre admiración al emprendimiento y críticas por ‘sobrevalorado’ y pérdida de ‘sazón’ con la expansión. A la par, se valora la higiene, el chicharrón, el bolón mixto y el jugo; se piden mejoras en ají, café y extras. Hay demanda de expansión a la Sierra y necesidad de un plan robusto de reputación y pagos electrónicos.", "conclusion": "Prioridades recomendadas: 1) habilitar pagos electrónicos en todos los locales; 2) elevar consistencia sensorial (temperatura, grasa, sal, humedad) con auditorías y ‘maestros de sazón’; 3) alinear precio-percepción con combos, tamaños y comunicación del valor; 4) rediseñar delivery con mínimos escalonados y cocinas de reparto; 5) refresh de ají y café; 6) playbook de reputación y contenidos educativos; 7) pilotos de expansión en Quito vía pop-ups/dark kitchen; 8) medición continua (NPS, tiempos de pase) y benchmarking competitivo. Esto reducirá el ruido negativo, aumentará conversión y protegerá el equity de marca.", "feelings": {"positive": {"value": 38, "label": "Aprecio por la historia de emprendimiento, limpieza, chicharrón y bolón mixto; ‘parada obligada’ y orgullo local."}, "negative": {"value": 47, "label": "Precio ‘caro/sobrevalorado’, falta de tarjetas, delivery mínimo alto, sabor inconsistente (seco/frío/sopudo), ‘pérdida de sazón’ con expansión."}, "neutral": {"value": 15, "label": "Comentarios informativos/comparativos y llamados a ‘comer donde guste cada quien’ sin tomar partido."}}},
+            "colocations": {"colocations": [{"colocation": "Café de Tere", "detail": "Marca hiper-presente y polarizante; reto reputacional y de gestión de crisis por alta visibilidad y expectativas."}, {"colocation": "Bolón de Tere", "detail": "Producto icónico; críticas por ser ‘normalito’ y caro en relación porción/precio. Desafío: sostener sabor diferencial y justificar precio."}, {"colocation": "Tigrillo de Tere", "detail": "Opiniones divididas (‘sopudo’, ‘insípido’ vs fans). Reto: estandarizar textura y sazón entre locales y turnos."}, {"colocation": "No aceptan tarjeta", "detail": "Fricción recurrente en el pago. Prioridad: habilitar tarjetas y medios digitales para reducir abandono."}, {"colocation": "Precio del bolón", "detail": "Alta sensibilidad a $3,50–$5 y extras. Necesario gestionar valor percibido, combos y transparencia de precios."}, {"colocation": "Sobrevalorado y caro", "detail": "Narrativa frecuente en redes. Urge reforzar propuesta de valor (calidad, higiene, experiencia) para contrarrestarla."}]},
+            "entities": {"entities": [
+    {
+        "entity": "Café de Tere (@CafedeTere)",
+        "detail": "Restaurante guayaquileño eje de la conversación; elogios y críticas por precio, calidad, servicio, limpieza, domicilios y no aceptar tarjetas."
+    },
+    {
+        "entity": "Teresa Castro Mendoza (Doña Tere)",
+        "detail": "Fundadora/propietaria; caso de éxito emprendedor citado en notas y hilos."
+    },
+    {
+        "entity": "Bolón (Bolón de Tere)",
+        "detail": "Producto insignia; debate sobre sabor, precio y porciones; comparado con huecas y competidores."
+    },
+    {
+        "entity": "Tigrillo",
+        "detail": "Segundo producto clave; comentarios divididos (p.ej. 'sopudo/insípido' vs 'delicioso')."
+    },
+    {
+        "entity": "El Universo",
+        "detail": "Medio cuyo reportaje detonó el pico de menciones y debate público."
+    },
+    {
+        "entity": "Twitter (X)",
+        "detail": "Plataforma del debate con participación de clientes, influencers y haters."
+    },
+    {
+        "entity": "Tarjetas de crédito / POS",
+        "detail": "Tema sensible: se critica que no acepten tarjetas; se sugiere modernizar pagos (p.ej. Datafast)."
+    },
+    {
+        "entity": "Domicilios y pedido mínimo",
+        "detail": "Cuestionamientos a mínimos (p.ej. $17) y costos de delivery."
+    },
+    {
+        "entity": "Ambiente, limpieza y servicio",
+        "detail": "Atributos usados para justificar precios y preferencia; señalados como fortalezas."
+    },
+    {
+        "entity": "SRI e IESS",
+        "detail": "Mencionados para comparar costos formales de un negocio vs huecas informales."
+    },
+    {
+        "entity": "CONAIE",
+        "detail": "Referida retóricamente en hilos para descalificar a 'odiadores de empresarios'."
+    },
+    {
+        "entity": "Amorfino Café",
+        "detail": "Competidor/alternativa recomendada; bolones y ají bien valorados."
+    },
+    {
+        "entity": "Rey Bolón",
+        "detail": "Alternativa en el mismo rubro; comparado en precio/calidad."
+    },
+    {
+        "entity": "Juan Tonga",
+        "detail": "Alternativa de bolones; aparece en menús comparativos."
+    },
+    {
+        "entity": "Café Real",
+        "detail": "Alternativa citada (tigrillo preferido por algunos)."
     }
+]}
+        };
 
-    // --- 2. Generate Engagement Heatmap Chart (Stacked Bar/Bar Chart Representation) ---
-    function generateHeatmapChart() {
-        const heatmapData = data.heatmap;
-        const days = Object.keys(heatmapData);
-        const hours = Array.from({length: 24}, (_, i) => i.toString()); // 0 to 23 hours
+        const data = {
+            describe_matrix: rawData.describe_matrix,
+            corr_matrix: rawData.corr_matrix,
+            engagement_matrix: rawData.engagement_matrix,
+            heatmap: rawData.heatmap,
+            topics: rawData.topics,
+            colocations: rawData.colocations,
+            entities: rawData.entities
+        };
+        
+        // Colores para el Heatmap
+        const minColor = '#fffaf0'; // Beige claro (bajo engagement)
+        const maxColor = '#A0522D'; // Marrón Café (alto engagement)
+        
+        // --- Funciones de Renderizado ---
 
-        const datasets = days.map((day, index) => {
-            // Replace -1 with 0 for chart display and proper stacking
-            const dayData = hours.map(hour => heatmapData[day][hour + '.0'] > 0 ? heatmapData[day][hour + '.0'] : 0);
-            return {
-                label: day,
-                data: dayData,
-                backgroundColor: getColor(index), // Assign a color from the palette
-                borderColor: 'white',
-                borderWidth: 1
+        // 1. Renderizar Resumen y Conclusión
+        document.getElementById('summary-text').innerText = data.topics.summary;
+        const conclusionText = data.topics.conclusion;
+
+// Expresión regular para encontrar los puntos de la lista (ej: "1) habilitar pagos electrónicos")
+// El split crea un array. El primer elemento es el texto introductorio, los demás son los puntos.
+const points = conclusionText.split(/; \d\)/g); 
+
+// El primer elemento suele ser la introducción o el primer punto incompleto.
+let introduction = "";
+let strategicPoints = [];
+
+if (points.length > 0) {
+    // Si el texto empieza con "Prioridades recomendadas: 1)", el split divide mal el primer elemento.
+    // Buscamos el texto introductorio.
+    const match = conclusionText.match(/(.*?):/); 
+    if (match && match[1]) {
+        introduction = match[1] + ":"; // Ejemplo: "Prioridades recomendadas:"
+        
+        // Creamos un array de puntos limpios
+        strategicPoints = conclusionText
+            .substring(introduction.length) // Quita la introducción
+            .match(/\d\)\s(.*?)(?=; \d\)|$)/g); // Captura los puntos numerados (1), 2), etc.)
+        
+        // Limpiamos los puntos, quitando la numeración inicial
+        if (strategicPoints) {
+            strategicPoints = strategicPoints.map(point => point.replace(/^\d\)\s/, '').trim());
+        } else {
+             // Caso de fallback si el regex es muy restrictivo
+             strategicPoints = [conclusionText]; 
+        }
+
+    } else {
+        // Fallback si no hay introducción clara
+        strategicPoints = conclusionText.match(/\d\)\s(.*?)(?=; \d\)|$)/g) || [conclusionText];
+         if (strategicPoints) {
+            strategicPoints = strategicPoints.map(point => point.replace(/^\d\)\s/, '').trim());
+        }
+    }
+}
+
+let listHTML = `<p>${introduction || 'Conclusión Estratégica:'}</p><ol>`;
+
+// Añadimos cada punto de la lista (ej: "habilitar pagos electrónicos en todos los locales")
+if (strategicPoints && strategicPoints.length > 0) {
+    strategicPoints.forEach(point => {
+        // Aseguramos que el punto no esté vacío y que no sea la frase final.
+        if (point && !point.toLowerCase().includes('esto reducirá el ruido negativo')) {
+             listHTML += `<li>${point.trim()}</li>`;
+        }
+    });
+}
+listHTML += `</ol>`;
+
+// Añadimos el impacto final (última frase) fuera de la lista numerada
+listHTML += `<p><strong>Impacto Esperado:</strong> ${conclusionText.match(/Esto reducirá el ruido negativo,.*?\./i) ? conclusionText.match(/Esto reducirá el ruido negativo,.*?\./i)[0] : ''}</p>`;
+
+
+// Inyectar el HTML de la lista
+document.getElementById('conclusion-text').innerHTML = listHTML;
+
+// --- FIN: CÓDIGO MODIFICADO PARA LA CONCLUSIÓN EN LISTA ---
+
+        // 2. Renderizar Métricas de Sentimiento y Pie Chart
+        const posVal = data.topics.feelings.positive.value;
+        const negVal = data.topics.feelings.negative.value;
+        const neuVal = data.topics.feelings.neutral.value;
+        const total = posVal + negVal + neuVal;
+
+        document.getElementById('pos-val').innerText = `${posVal}%`;
+        document.getElementById('neg-val').innerText = `${negVal}%`;
+        document.getElementById('neu-val').innerText = `${neuVal}%`;
+        
+        const pieChart = document.getElementById('sentiment-pie');
+        
+        const negDegree = (negVal / total) * 360;
+        const posDegree = (posVal / total) * 360;
+        const neuDegree = (neuVal / total) * 360;
+        
+        // Generar CSS para el Pie Chart usando conic-gradient (simulación de pie chart sin librería)
+        pieChart.style.background = `conic-gradient(
+            var(--negative-color) 0deg ${negDegree}deg,
+            var(--positive-color) ${negDegree}deg ${negDegree + posDegree}deg,
+            var(--neutral-color) ${negDegree + posDegree}deg 360deg
+        )`;
+
+        // 3. Renderizar Acordeón de Tópicos
+        const accordion = document.getElementById('topics-accordion');
+        data.topics.topics.forEach((topic, index) => {
+            const item = document.createElement('div');
+            item.className = 'accordion-item';
+            
+            const title = document.createElement('div');
+            title.className = 'accordion-title';
+            title.innerHTML = `<span>${topic.title}</span><span style="font-size: 1.2em;">+</span>`;
+            title.onclick = () => {
+                const content = item.querySelector('.accordion-content');
+                const isVisible = content.style.display === 'block';
+                // Cerrar otros
+                document.querySelectorAll('.accordion-content').forEach(c => c.style.display = 'none');
+                document.querySelectorAll('.accordion-title span:last-child').forEach(s => s.textContent = '+');
+
+                // Abrir/Cerrar actual
+                content.style.display = isVisible ? 'none' : 'block';
+                title.querySelector('span:last-child').textContent = isVisible ? '+' : '–';
             };
+
+            const content = document.createElement('div');
+            content.className = 'accordion-content';
+            content.innerHTML = `
+                <p><strong>Detalle:</strong> ${topic.detail}</p>
+                <div class="sentiment-block positive">
+                    <strong>✅ Puntos Positivos:</strong> ${topic.positive}
+                </div>
+                <div class="sentiment-block negative">
+                    <strong>❌ Puntos Negativos:</strong> ${topic.negative}
+                </div>
+                <div class="sentiment-block challenge">
+                    <strong>💡 Desafíos/Estrategias:</strong> ${topic.challenge}
+                </div>
+            `;
+            
+            item.appendChild(title);
+            item.appendChild(content);
+            accordion.appendChild(item);
         });
 
-        const ctx = document.getElementById('engagementHeatmapChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: hours.map(h => `${h}:00`),
-                datasets: datasets
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    title: {
-                        display: true,
-                        text: 'Total Tweet Count by Hour and Day',
-                        color: '#333'
-                    }
-                },
-                scales: {
-                    x: {
-                        stacked: true,
-                        title: {
-                            display: true,
-                            text: 'Hour of Day (24-Hour Format)',
-                            color: '#333'
-                        }
-                    },
-                    y: {
-                        stacked: true,
-                        title: {
-                            display: true,
-                            text: 'Tweet Count',
-                            color: '#333'
-                        }
-                    }
+        // 4. Renderizar Top 10 Engagement
+        const engagementTable = document.getElementById('top-engagement-table');
+        const tweets = Object.keys(data.engagement_matrix.text).map(key => ({
+            text: data.engagement_matrix.text[key],
+            likes: data.engagement_matrix.favorite_count[key],
+            retweets: data.engagement_matrix.retweet_count[key],
+            engagement: data.engagement_matrix.total_engagement[key]
+        })).sort((a, b) => b.engagement - a.engagement).slice(0, 10);
+        
+        tweets.forEach(tweet => {
+            const row = engagementTable.insertRow();
+            row.insertCell().innerText = tweet.text.length > 70 ? tweet.text.substring(0, 67) + '...' : tweet.text;
+            row.insertCell().innerText = Math.round(tweet.likes).toLocaleString('es');
+            row.insertCell().innerText = Math.round(tweet.retweets).toLocaleString('es');
+        });
+
+        // 5. Renderizar Estadísticas Clave
+        const statsTable = document.getElementById('stats-table');
+        const metrics = ['favorite_count', 'retweet_count', 'user.followers_count'];
+        const labels = ['Likes (Fav.)', 'Retweets (RTs)', 'Seguidores (User)'];
+        
+        metrics.forEach((metric, index) => {
+            const row = statsTable.insertRow();
+            row.insertCell().innerText = labels[index];
+            row.insertCell().innerText = Math.round(data.describe_matrix.mean[metric]).toLocaleString('es');
+            row.insertCell().innerText = Math.round(data.describe_matrix.max[metric]).toLocaleString('es');
+        });
+
+        // 6. Renderizar Colocaciones
+        const colocationsList = document.getElementById('colocations-list');
+        data.colocations.colocations.forEach(col => {
+            const li = document.createElement('li');
+            li.innerText = col.colocation;
+            li.title = col.detail;
+            colocationsList.appendChild(li);
+        });
+
+        // 7. Renderizar Heatmap (Likes por Hora y Día)
+        const heatmapTable = document.getElementById('heatmap-table');
+        const days = Object.keys(data.heatmap);
+        const hours = Object.keys(data.heatmap[days[0]]).map(h => parseFloat(h)).sort((a, b) => a - b);
+
+        // Encontrar el valor máximo para la escala de color (excluyendo -1.0)
+        let maxLike = 0;
+        days.forEach(day => {
+            hours.forEach(hour => {
+                const value = data.heatmap[day][hour.toFixed(1)];
+                if (value > maxLike) {
+                    maxLike = value;
                 }
-            }
+            });
         });
-    }
 
-    // Color utility for charts
-    function getColor(index) {
-        const palette = ['#BDC730', '#5DA271', '#AED1B8', '#DEE398', '#333']; // Primary, Dark Accent, Accent, Secondary, Black
-        return palette[index % palette.length];
-    }
-    
-    // --- 3. Populate Topics and Challenges ---
-    function populateTopics() {
-        const topicsList = document.getElementById('topics-list');
-        const topics = data.topics.topics;
+        // Función para obtener color (simulación de escala)
+        const getColor = (value) => {
+            if (value <= 0) return minColor; // Sin likes o dato no disponible
+            const normalized = value / maxLike; // 0 a 1
+            
+            // Interpolación de color (ejemplo simple entre blanco y el color primario)
+            const r1 = 248, g1 = 244, b1 = 227; // var(--background-color) en RGB
+            const r2 = 160, g2 = 82, b2 = 45; // var(--primary-color) en RGB
 
-        topics.forEach(topic => {
-            const topicDiv = document.createElement('div');
-            topicDiv.className = 'topic-item';
+            const r = Math.round(r1 + (r2 - r1) * normalized);
+            const g = Math.round(g1 + (g2 - g1) * normalized);
+            const b = Math.round(b1 + (b2 - b1) * normalized);
 
-            const title = document.createElement('h3');
-            title.textContent = topic.title;
-
-            const detail = document.createElement('p');
-            detail.innerHTML = `**Detail:** ${topic.detail}`;
-
-            const challenge = document.createElement('p');
-            challenge.innerHTML = `**Challenge:** ${topic.challenge}`;
-
-            topicDiv.appendChild(title);
-            topicDiv.appendChild(detail);
-            topicDiv.appendChild(challenge);
-            topicsList.appendChild(topicDiv);
+            return `rgb(${r}, ${g}, ${b})`;
+        };
+        
+        // Encabezado del Heatmap (Días de la semana)
+        let headerRow = heatmapTable.insertRow();
+        headerRow.insertCell().outerHTML = '<th>Hora del Día / Día de la Semana</th>';
+        days.forEach(day => {
+            headerRow.insertCell().outerHTML = `<th>${day.slice(0,3)}</th>`;
         });
-    }
 
+        // Filas del Heatmap (Horas del día)
+        hours.forEach(hour => {
+            let row = heatmapTable.insertRow();
+            row.insertCell().outerHTML = `<th>${hour.toString().padStart(2, '0')}:00</th>`;
+            
+            days.forEach(day => {
+                const value = data.heatmap[day][hour.toFixed(1)];
+                const cell = row.insertCell();
+                cell.style.backgroundColor = getColor(value);
+                cell.style.color = value > (maxLike * 0.5) ? 'white' : 'var(--text-color)'; // Color de texto para contraste
+                cell.innerText = value > 0 ? value.toFixed(1) : '-';
+                cell.title = `Likes a las ${hour}:00 el ${day}`;
+            });
+        });
 
-    // --- Initialize Dashboard ---
-    window.onload = () => {
-        populateTopTweets();
-        generateHeatmapChart();
-        populateTopics();
-    };
-</script>
+        // 8. Renderizar Entidades Interactivas
+function renderInteractiveEntities(entities) {
+    const container = document.getElementById('entity-list-container');
+    const detailBox = document.getElementById('entity-detail-box');
+    container.innerHTML = ''; // Limpiar contenedor
 
+    // Usar la lista de entidades (entities) para mayor riqueza de datos
+    entities.forEach(item => {
+        // Crear el elemento de etiqueta
+        const tag = document.createElement('span');
+        tag.classList.add('interactive-tag');
+        
+        // Usar la Entidad como texto visible
+        tag.textContent = item.entity;
+        
+        // Almacenar el detalle en un atributo de datos
+        tag.dataset.detail = item.detail;
+
+        // Añadir el Listener de Click
+        tag.addEventListener('click', function() {
+            // 1. Quitar la clase 'active' de todas las etiquetas
+            document.querySelectorAll('.interactive-tag').forEach(t => t.classList.remove('active'));
+            
+            // 2. Añadir la clase 'active' a la etiqueta clickeada
+            this.classList.add('active');
+            
+            // 3. Mostrar el detalle en la caja de detalle
+            detailBox.innerHTML = `
+                <p><strong>${item.entity}:</strong> ${this.dataset.detail}</p>
+            `;
+        });
+
+        container.appendChild(tag);
+    });
+}
+
+// Llama a la nueva función de renderizado en tu función 'initDashboard' o al inicio del script
+// Asegúrate de usar 'data.entities.entities' que contiene la lista completa de entidades
+// Si quieres usar las Colocaciones, cambia el argumento a 'data.colocations.colocations'
+
+// EJEMPLO: Si llamas a todas las funciones de renderizado dentro de initDashboard:
+renderInteractiveEntities(data.entities.entities);
+        //renderInteractiveEntities(data.colocations.colocations);
+        
+    </script>
 </body>
 </html>
